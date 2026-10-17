@@ -1,0 +1,7 @@
+dist
+node_modules
+public
+package-lock.json
+src/lib/icons/fluent.json
+test-results
+playwright-report

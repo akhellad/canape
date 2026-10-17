@@ -1,0 +1,13 @@
+{
+  "name": "Les meme dans le canapé",
+  "short_name": "Canapé",
+  "description": "Des jeux de société à deux, sur la télé, avec vos téléphones comme manettes.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#231a2d",
+  "theme_color": "#231a2d",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,111 @@
+import { writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const collection = require('@iconify-json/fluent-emoji-flat/icons.json');
+
+const names = [
+  'red-apple',
+  'banana',
+  'grapes',
+  'strawberry',
+  'watermelon',
+  'pineapple',
+  'cherries',
+  'carrot',
+  'avocado',
+  'croissant',
+  'pizza',
+  'hamburger',
+  'doughnut',
+  'soft-ice-cream',
+  'birthday-cake',
+  'cheese-wedge',
+  'dog-face',
+  'cat-face',
+  'fox',
+  'panda',
+  'frog',
+  'lion',
+  'pig-face',
+  'octopus',
+  'penguin',
+  'turtle',
+  'unicorn',
+  'butterfly',
+  'snail',
+  'crab',
+  'dolphin',
+  'sun',
+  'crescent-moon',
+  'star',
+  'rainbow',
+  'snowflake',
+  'fire',
+  'high-voltage',
+  'droplet',
+  'four-leaf-clover',
+  'sunflower',
+  'cactus',
+  'mushroom',
+  'rocket',
+  'anchor',
+  'key',
+  'light-bulb',
+  'crown',
+  'gem-stone',
+  'wrapped-gift',
+  'balloon',
+  'guitar',
+  'alarm-clock',
+  'umbrella',
+  'red-heart',
+  'ghost',
+  'robot',
+  'ship',
+  'collision',
+  'water-wave',
+  'bomb',
+  'eyes',
+  'detective',
+  'skull',
+  'person-walking',
+  'hourglass-done',
+  'artist-palette',
+  'pencil',
+  'see-no-evil-monkey',
+  'straight-ruler',
+  'mirror',
+  'fountain-pen',
+  'trophy',
+  'party-popper',
+  'handshake',
+  'sparkles',
+  'couch-and-lamp',
+  'television',
+  'mobile-phone',
+  'thinking-face',
+  'speech-balloon',
+  'bullseye',
+  'game-die',
+  'stopwatch',
+  'clapping-hands',
+  'dizzy',
+  'face-with-monocle',
+  'loudly-crying-face',
+  'partying-face',
+  'smiling-face-with-hearts',
+];
+
+const output = {};
+for (const name of names) {
+  const parent = collection.aliases?.[name]?.parent;
+  const icon = collection.icons[name] ?? (parent ? collection.icons[parent] : undefined);
+  if (!icon) throw new Error(`Missing icon: ${name}`);
+  if (/\sid="/.test(icon.body)) throw new Error(`Icon uses element ids: ${name}`);
+  output[name] = icon.body;
+}
+
+const target = new URL('../src/lib/icons/fluent.json', import.meta.url);
+await writeFile(target, `${JSON.stringify(output, null, 0)}\n`);
+console.log(`${Object.keys(output).length} icons written to ${target.pathname}`);

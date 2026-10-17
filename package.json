@@ -1,0 +1,42 @@
+{
+  "name": "les-meme-dans-le-canape",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "icons": "node scripts/extract-icons.mjs",
+    "format": "prettier --write .",
+    "lint": "prettier --check ."
+  },
+  "dependencies": {
+    "@fontsource-variable/nunito": "^5.3.0",
+    "@fontsource/chewy": "^5.3.0",
+    "@lucide/svelte": "^1.59.0",
+    "peerjs": "^1.5.5",
+    "qrcode": "^1.5.4",
+    "svelte": "^5.57.2"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@iconify-json/fluent-emoji-flat": "^1.2.6",
+    "@playwright/test": "1.56.1",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^26.6.5",
+    "@types/qrcode": "^1.5.6",
+    "peer": "^1.0.2",
+    "playwright-core": "1.56.1",
+    "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "^4.1.1",
+    "svelte-check": "^4.7.7",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

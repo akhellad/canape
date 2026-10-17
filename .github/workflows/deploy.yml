@@ -32,6 +32,10 @@ jobs:
         if: steps.project.outputs.node == 'true'
         run: npm ci
 
+      - name: Formatting
+        if: steps.project.outputs.node == 'true'
+        run: npm run lint
+
       - name: Type check
         if: steps.project.outputs.node == 'true'
         run: npm run check
