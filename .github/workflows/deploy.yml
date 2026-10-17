@@ -1,0 +1,125 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, beta]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Detect project
+        id: project
+        run: |
+          if [ -f package.json ]; then echo "node=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-node@v5
+        if: steps.project.outputs.node == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: steps.project.outputs.node == 'true'
+        run: npm ci
+
+      - name: Type check
+        if: steps.project.outputs.node == 'true'
+        run: npm run check
+
+      - name: Unit tests
+        if: steps.project.outputs.node == 'true'
+        run: npm test
+
+      - name: End-to-end tests
+        if: steps.project.outputs.node == 'true'
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+  publish-beta:
+    needs: test
+    if: github.ref_name == 'beta'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger deployment from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --repo "${{ github.repository }}" --ref main
+
+  build:
+    needs: test
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          path: main
+
+      - name: Check for beta branch
+        id: beta
+        run: |
+          if git ls-remote --exit-code --heads "https://github.com/${{ github.repository }}" beta > /dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.beta.outputs.exists == 'true'
+        with:
+          ref: beta
+          path: beta
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Build site
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          build_branch() {
+            local dir="$1" base="$2" out="$3"
+            mkdir -p "$out"
+            if [ -f "$dir/package.json" ]; then
+              (cd "$dir" && npm ci && BASE_PATH="$base" npm run build)
+              cp -r "$dir/dist/." "$out/"
+            else
+              rsync -a --exclude '.git' --exclude '.github' "$dir/" "$out/"
+            fi
+          }
+          build_branch main "/$REPO_NAME/" site
+          if [ -d beta ]; then
+            build_branch beta "/$REPO_NAME/beta/" site/beta
+          fi
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
