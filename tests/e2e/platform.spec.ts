@@ -13,12 +13,15 @@ async function contrastViolations(page: Page) {
 test('ignore un appui fantôme juste après un changement d’écran', async ({ browser }) => {
   const table = await openTable(browser);
   const [a] = table.phones;
-  await tapSettled(a, a.locator('.game', { hasText: 'Puissance 4' }));
+  await settled(a);
+  await a.clock.install();
+  await a.locator('.game', { hasText: 'Puissance 4' }).tap();
   const ready = a.getByRole('button', { name: 'Je suis prêt !' });
   await ready.waitFor();
+  await expect(a.locator('.phone.guarded')).toHaveCount(1);
   await ready.tap({ force: true });
-  await a.waitForTimeout(150);
   await expect(table.tv.locator('.who.ok')).toHaveCount(0);
+  await a.clock.runFor(500);
   await settled(a);
   await ready.tap();
   await expect(table.tv.locator('.who.ok')).toHaveCount(1);

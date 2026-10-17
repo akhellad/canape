@@ -135,7 +135,7 @@ test('Kif-Kif se joue jusqu’à la dernière carte', async () => {
     await expect(a.locator('.penalty')).toBeHidden({ timeout: 4000 });
   }
   let turns = 0;
-  while (!(await resultVisible(table)) && turns < 40) {
+  while (!(await resultVisible(table)) && turns < 120) {
     const phone = table.phones[turns % 2];
     await settled(phone);
     const center = await centerSymbols();

@@ -99,7 +99,7 @@ export class PlayerClient {
         link.send({ t: 'hello', protocol: PROTOCOL, clientId: this.options.clientId, name: this.options.name } satisfies ClientMessage);
       },
       onError: (error) => {
-        if (this.dial !== dial) return;
+        if (this.dial !== dial || this.link) return;
         this.dial = null;
         if (error === 'unavailable') this.setStatus('unreachable');
         this.scheduleRetry();

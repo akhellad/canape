@@ -4,7 +4,18 @@ import type { ClientTransport, Dial, DialHandlers, HostTransport, ListenHandlers
 
 export const PEER_PREFIX = 'lmdc-salon-';
 
-const NETWORK_ERRORS = new Set(['network', 'server-error', 'socket-error', 'socket-closed', 'disconnected', 'webrtc']);
+const SIGNALING_ERRORS = new Set(['network', 'server-error', 'socket-error', 'socket-closed', 'disconnected', 'unavailable-id']);
+const RECONNECT_DELAY_MS = 3000;
+
+function hasOpenConnections(peer: Peer): boolean {
+  return Object.values(peer.connections as Record<string, DataConnection[]>).some((list) => list.some((connection) => connection.open));
+}
+
+function keepSignaling(peer: Peer, isCurrent: () => boolean): void {
+  setTimeout(() => {
+    if (isCurrent() && !peer.destroyed && peer.disconnected) peer.reconnect();
+  }, RECONNECT_DELAY_MS);
+}
 
 function wrap(connection: DataConnection): Link {
   const link = new Link(
@@ -52,6 +63,10 @@ export class PeerHostTransport implements HostTransport {
     });
     peer.on('error', (error) => {
       if (this.peer !== peer || error.type === 'peer-unavailable') return;
+      if (SIGNALING_ERRORS.has(error.type) && hasOpenConnections(peer)) {
+        keepSignaling(peer, () => this.peer === peer);
+        return;
+      }
       peer.destroy();
       this.peer = null;
       handlers.onError(error.type === 'unavailable-id' ? 'taken' : 'network');
@@ -83,6 +98,7 @@ export class PeerClientTransport implements ClientTransport {
       let opened = false;
       link.onOpen(() => {
         opened = true;
+        if (this.current === handlers) this.current = null;
         if (!cancelled) handlers.onOpen(link);
       });
       link.onClose(() => {
@@ -121,7 +137,11 @@ export class PeerClientTransport implements ClientTransport {
         handlers?.onError('unavailable');
         return;
       }
-      if (NETWORK_ERRORS.has(error.type) && this.peer === peer) {
+      if (SIGNALING_ERRORS.has(error.type) && hasOpenConnections(peer)) {
+        keepSignaling(peer, () => this.peer === peer);
+        return;
+      }
+      if (this.peer === peer) {
         peer.destroy();
         this.peer = null;
       }
