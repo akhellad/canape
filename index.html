@@ -1,0 +1,1310 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#130f1d">
+<title>Canapé</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+  --bg: #130f1d;
+  --panel: #241c3a;
+  --line: #3a2f57;
+  --text: #f6f2ff;
+  --muted: #a597c7;
+  --p0: #5cc8ff;
+  --p1: #ffb35c;
+  --good: #4fe08f;
+  --bad: #ff5d7d;
+  --primary: #ff5d8f;
+  --t0: #e9465a;
+  --t1: #3c8cff;
+  --t2: #e9a81c;
+  --t3: #22ad63;
+  --ca: #8b5cf6;
+  --cb: #129e8f;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  min-height: 100%;
+  background:
+    radial-gradient(1200px 800px at 15% -10%, #2a1d4a 0%, transparent 60%),
+    radial-gradient(900px 700px at 110% 110%, #3a1530 0%, transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: 'Nunito', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+h1, h2, .brand, .signal, .btn, .bigtap, .letter, .score strong, .timer, .card { font-family: 'Fredoka', 'Nunito', sans-serif; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.brand { font-size: 1.6em; font-weight: 700; }
+.brand span { color: var(--primary); }
+.muted { color: var(--muted); }
+.p0 { --pc: var(--p0); }
+.p1 { --pc: var(--p1); }
+.t0 { --tc: var(--t0); }
+.t1 { --tc: var(--t1); }
+.t2 { --tc: var(--t2); }
+.t3 { --tc: var(--t3); }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tv { height: 100vh; display: flex; flex-direction: column; padding: 3vh 3.5vw; gap: 2.5vh; font-size: clamp(14px, 1.45vw, 44px); overflow: hidden; }
+.bar { display: flex; align-items: center; gap: 2vw; }
+.players { display: flex; gap: 1vw; margin-left: auto; }
+.pchip { display: flex; align-items: center; gap: .6em; padding: .45em .9em; border-radius: 999px; background: var(--panel); border: 2px solid var(--pc, var(--line)); font-weight: 800; }
+.pchip .dot { width: .6em; height: .6em; border-radius: 50%; background: var(--good); }
+.pchip.off { opacity: .6; }
+.pchip.off .dot { background: var(--bad); }
+.pchip b { background: var(--pc); color: var(--bg); border-radius: 999px; padding: 0 .55em; font-size: .85em; }
+.pchip.empty { color: var(--muted); border-style: dashed; }
+.code { color: var(--muted); font-weight: 700; }
+.code b { color: var(--text); letter-spacing: .15em; }
+.tv-main { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+
+.stage { width: 100%; max-width: 1500px; display: flex; flex-direction: column; gap: 2.4vh; animation: rise .35s ease-out; }
+.topline { display: flex; justify-content: space-between; align-items: center; }
+.kicker { color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .12em; font-size: .85em; }
+.timer { font-size: 2em; font-weight: 700; min-width: 2.2em; text-align: center; padding: .1em .4em; border-radius: .4em; background: var(--panel); }
+.lead { font-size: 1.4em; color: var(--muted); font-weight: 800; }
+.question { font-size: 2.6em; line-height: 1.15; font-weight: 600; }
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4vw; }
+.option { display: flex; align-items: center; flex-wrap: wrap; gap: .8em; padding: 1em 1.2em; border-radius: 1em; background: var(--tc); font-size: 1.35em; font-weight: 800; transition: opacity .3s, transform .3s; }
+.option.dim { opacity: .28; }
+.option.correct { transform: scale(1.03); box-shadow: 0 0 0 .18em #fff; }
+.letter { display: grid; place-items: center; width: 1.9em; height: 1.9em; border-radius: .5em; background: rgba(0, 0, 0, .25); font-weight: 700; }
+.otext { flex: 1; }
+.tag { font-style: normal; font-size: .75em; padding: .2em .7em; border-radius: 999px; background: var(--pc); color: var(--bg); font-weight: 800; }
+.chips { display: flex; gap: 1vw; justify-content: center; flex-wrap: wrap; }
+.chip { padding: .5em 1.1em; border-radius: 999px; border: 2px dashed var(--pc); color: var(--pc); font-weight: 800; }
+.chip.done { border-style: solid; background: var(--pc); color: var(--bg); }
+.scoreboard { display: flex; justify-content: center; gap: 2vw; }
+.score { display: flex; align-items: center; gap: .8em; padding: .5em 1.2em; border-radius: .8em; background: var(--panel); border-bottom: .25em solid var(--pc); font-weight: 800; }
+.score strong { font-size: 1.6em; }
+.verdict { text-align: center; font-family: 'Fredoka', sans-serif; font-size: 2em; font-weight: 600; padding: .5em; border-radius: .6em; background: rgba(255, 255, 255, .06); }
+.verdict.good { background: rgba(79, 224, 143, .14); color: var(--good); }
+.verdict.bad { background: rgba(255, 93, 125, .14); color: var(--bad); }
+.votes { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; }
+.vote { padding: 1.2em; border-radius: 1em; background: var(--panel); border-top: .3em solid var(--pc); display: flex; flex-direction: column; gap: .3em; text-align: center; }
+.vote span { color: var(--muted); font-weight: 800; }
+.vote strong { font-family: 'Fredoka', sans-serif; font-size: 2em; }
+.duo { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5vw; }
+.choice { padding: 1.4em; border-radius: 1em; font-size: 1.6em; font-weight: 800; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .6em; text-align: center; min-height: 5.5em; }
+.choice .tags { display: flex; gap: .5em; flex-wrap: wrap; justify-content: center; }
+.ca { background: var(--ca); }
+.cb { background: var(--cb); }
+.or { align-self: center; font-family: 'Fredoka', sans-serif; font-size: 1.4em; color: var(--muted); }
+
+.reflex { flex: 1; align-self: stretch; border-radius: 1.5em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vh; }
+.reflex.wait { background: #5a1424; }
+.reflex.go { background: #16a34a; }
+.reflex.result { background: var(--panel); }
+.signal { font-size: 6em; font-weight: 700; text-align: center; line-height: 1; padding: 0 .5em; }
+.hint { font-size: 1.5em; font-weight: 800; opacity: .85; min-height: 1.4em; }
+
+.table { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; }
+.seat { background: rgba(255, 255, 255, .04); border: 2px solid var(--line); border-top: .35em solid var(--pc); border-radius: 1.2em; padding: 1.4em; display: flex; flex-direction: column; gap: 1.2em; }
+.seat.win { border-color: var(--good); box-shadow: 0 0 2em rgba(79, 224, 143, .25); }
+.seat-head { display: flex; justify-content: space-between; font-weight: 800; font-size: 1.3em; }
+.seat-head em { font-style: normal; color: var(--muted); }
+.hand { display: flex; gap: .6em; flex-wrap: wrap; min-height: 7.4em; }
+.card { width: 5.2em; height: 7.4em; border-radius: .6em; background: #fbf8f2; color: #1b1626; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 .3em .8em rgba(0, 0, 0, .35); flex-shrink: 0; }
+.card b { font-size: 1.9em; line-height: 1; }
+.card i { font-style: normal; font-size: 2.1em; line-height: 1; }
+.card.red { color: #d42a45; }
+.card.back { background: repeating-linear-gradient(45deg, #ff5d8f 0 .5em, #c2386a .5em 1em); border: .3em solid #fbf8f2; }
+
+.lobby { display: flex; align-items: center; gap: 5vw; animation: rise .35s ease-out; }
+.qr { background: #fff; padding: 1.2em; border-radius: 1.2em; width: min(42vh, 32vw); aspect-ratio: 1; flex-shrink: 0; }
+.qr img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.qr-wait { color: var(--bg); display: grid; place-items: center; height: 100%; font-weight: 800; }
+.lobby h1 { font-size: 3.2em; line-height: 1.05; margin-bottom: .4em; }
+.lobby p { font-size: 1.25em; margin-bottom: .8em; max-width: 28em; font-weight: 700; }
+.lobby .url { font-family: ui-monospace, monospace; font-size: 1em; color: var(--muted); word-break: break-all; }
+.lobby .error { color: var(--bad); }
+
+.menu { width: 100%; max-width: 1500px; display: flex; flex-direction: column; gap: 3vh; animation: rise .35s ease-out; }
+.menu h1 { font-size: 2.6em; text-align: center; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vw; }
+.tile { background: var(--panel); border: 2px solid var(--line); border-radius: 1.2em; padding: 1.4em; display: flex; flex-direction: column; gap: .5em; }
+.tile .num { font-family: 'Fredoka', sans-serif; color: var(--primary); font-weight: 700; }
+.tile h2 { font-size: 1.6em; }
+.tile p { color: var(--muted); font-weight: 700; }
+
+.end { text-align: center; display: flex; flex-direction: column; gap: 2vh; animation: rise .35s ease-out; }
+.end h1 { font-size: 4em; line-height: 1.05; background: linear-gradient(90deg, #ff5d8f, #ffb35c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.end p { font-size: 1.6em; font-weight: 800; }
+
+.pad { min-height: 100vh; min-height: 100dvh; max-width: 560px; margin: 0 auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 16px; }
+.pad.center { justify-content: center; align-items: center; text-align: center; }
+.phead { display: flex; justify-content: space-between; align-items: center; }
+.brand.small { font-size: 1.3em; }
+.me { padding: .35em .9em; border-radius: 999px; background: var(--pc, var(--panel)); color: var(--bg); font-weight: 800; }
+.ptitle { font-family: 'Nunito', sans-serif; font-size: .95em; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-weight: 800; }
+.ptext { font-size: 1.35em; font-weight: 800; line-height: 1.3; }
+.ptext.good { color: var(--good); }
+.ptext.bad { color: var(--bad); }
+.pbuttons { display: flex; flex-direction: column; gap: 12px; margin-top: auto; }
+.pbuttons.row { flex-direction: row; }
+.pbuttons.row .btn { flex: 1; align-items: center; }
+.btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; padding: 18px; border-radius: 16px; background: var(--panel); border: 2px solid var(--line); font-size: 1.15em; font-weight: 600; text-align: left; transition: transform .08s, opacity .2s; }
+.btn:active { transform: scale(.97); }
+.btn small { font-family: 'Nunito', sans-serif; font-size: .72em; color: var(--muted); font-weight: 700; }
+.btn.primary { background: var(--primary); border-color: transparent; align-items: center; text-align: center; }
+.btn.t0, .btn.t1, .btn.t2, .btn.t3 { background: var(--tc); border-color: transparent; }
+.btn.p0, .btn.p1 { background: var(--pc); color: var(--bg); border-color: transparent; align-items: center; }
+.btn.ca, .btn.cb { border-color: transparent; }
+.btn:disabled { opacity: .35; }
+.btn.selected { opacity: 1; box-shadow: 0 0 0 3px #fff; }
+.bigtap { flex: 1; min-height: 45vh; border-radius: 28px; background: var(--primary); font-size: 3em; font-weight: 700; letter-spacing: .05em; box-shadow: 0 10px 0 #a3305a; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.bigtap.hit { transform: translateY(6px); box-shadow: 0 4px 0 #a3305a; }
+.pad .hand { min-height: 0; }
+.link { color: var(--muted); text-decoration: underline; padding: 8px; align-self: center; font-size: .95em; font-weight: 700; }
+.join-form { display: flex; flex-direction: column; gap: 12px; margin: auto 0; }
+.join-form label { font-weight: 800; color: var(--muted); }
+.join-form input { font: inherit; font-size: 1.3em; padding: 16px; border-radius: 14px; border: 2px solid var(--line); background: var(--panel); color: var(--text); outline: none; }
+.join-form input:focus { border-color: var(--primary); }
+.spinner { width: 42px; height: 42px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--primary); animation: spin 1s linear infinite; }
+.status { font-size: 1.2em; font-weight: 800; max-width: 22em; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+const HOST_PREFIX = 'canape-salon-';
+const ROOM = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
+const app = document.getElementById('app');
+
+const esc = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const shuffle = list => {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+const store = {
+  get(key) { try { return localStorage.getItem(key); } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(key, value); } catch {} },
+};
+const withDe = s => (/^[aeiouyàâéèêîôû]/i.test(s) ? 'd’' : 'de ') + s;
+
+const QUIZ = [
+  ['Quelle est la capitale de l’Australie ?', ['Canberra', 'Sydney', 'Melbourne', 'Perth']],
+  ['Combien de cœurs a une pieuvre ?', ['3', '1', '2', '8']],
+  ['Quel pays a gagné la Coupe du monde de football 2022 ?', ['Argentine', 'France', 'Croatie', 'Maroc']],
+  ['Combien d’os compte le squelette d’un adulte ?', ['206', '186', '226', '250']],
+  ['Quelle planète est la plus proche du Soleil ?', ['Mercure', 'Vénus', 'Mars', 'Terre']],
+  ['En quelle année est sorti le premier iPhone ?', ['2007', '2005', '2009', '2010']],
+  ['Quel est l’animal terrestre le plus rapide ?', ['Le guépard', 'Le lion', 'L’antilope', 'Le lévrier']],
+  ['Qui a peint La Joconde ?', ['Léonard de Vinci', 'Michel-Ange', 'Raphaël', 'Botticelli']],
+  ['Quel élément chimique a pour symbole Au ?', ['L’or', 'L’argent', 'L’aluminium', 'L’argon']],
+  ['Combien de joueurs par équipe sur le terrain au rugby à XV ?', ['15', '13', '11', '12']],
+  ['Quel est le plus long fleuve de France ?', ['La Loire', 'La Seine', 'Le Rhône', 'La Garonne']],
+  ['Dans quel pays se trouve Marrakech ?', ['Maroc', 'Algérie', 'Tunisie', 'Égypte']],
+  ['Quel est le plus grand océan du monde ?', ['Pacifique', 'Atlantique', 'Indien', 'Arctique']],
+  ['Combien y a-t-il de minutes dans une journée ?', ['1 440', '1 240', '1 600', '1 320']],
+  ['Quelle langue parle-t-on principalement au Brésil ?', ['Portugais', 'Espagnol', 'Anglais', 'Italien']],
+  ['Quel est le seul mammifère capable de vraiment voler ?', ['La chauve-souris', 'L’écureuil volant', 'L’ornithorynque', 'Le lémurien']],
+  ['En quelle année le mur de Berlin est-il tombé ?', ['1989', '1991', '1985', '1979']],
+  ['Combien de cordes a une guitare classique ?', ['6', '4', '5', '7']],
+  ['Quel pays est le plus peuplé du monde depuis 2023 ?', ['Inde', 'Chine', 'États-Unis', 'Indonésie']],
+  ['Quel gaz les plantes absorbent-elles pour la photosynthèse ?', ['Le dioxyde de carbone', 'L’oxygène', 'L’azote', 'L’hydrogène']],
+  ['Combien de pattes a une araignée ?', ['8', '6', '10', '12']],
+  ['Quelle est la monnaie du Japon ?', ['Le yen', 'Le won', 'Le yuan', 'Le baht']],
+  ['Dans quel jeu vidéo croise-t-on des Creepers ?', ['Minecraft', 'Fortnite', 'Roblox', 'Terraria']],
+  ['Quel est le plus grand organe du corps humain ?', ['La peau', 'Le foie', 'Les poumons', 'L’intestin']],
+  ['Combien de temps met la lumière du Soleil pour atteindre la Terre ?', ['Environ 8 minutes', 'Environ 8 secondes', 'Environ 1 heure', 'Environ 1 seconde']],
+  ['Quel pays a la forme d’une botte ?', ['Italie', 'Grèce', 'Espagne', 'Portugal']],
+  ['Quelle est la plus haute montagne du monde ?', ['L’Everest', 'Le K2', 'Le mont Blanc', 'Le Kilimandjaro']],
+  ['Combien de zéros y a-t-il dans un milliard ?', ['9', '6', '12', '10']],
+  ['Qui a écrit Les Misérables ?', ['Victor Hugo', 'Émile Zola', 'Honoré de Balzac', 'Gustave Flaubert']],
+  ['De quelle couleur est le cheval blanc d’Henri IV ?', ['Blanc', 'Gris', 'Noir', 'Marron']],
+  ['Combien de dents a un adulte, dents de sagesse comprises ?', ['32', '28', '30', '36']],
+  ['Dans quelle ville se trouve la Sagrada Família ?', ['Barcelone', 'Madrid', 'Séville', 'Lisbonne']],
+  ['Quel animal figure sur le logo de Lacoste ?', ['Un crocodile', 'Un tigre', 'Un lion', 'Un serpent']],
+  ['Combien de cases compte un échiquier ?', ['64', '36', '100', '81']],
+  ['Quel est le plus petit pays du monde ?', ['Le Vatican', 'Monaco', 'Saint-Marin', 'Le Liechtenstein']],
+  ['Quelle est la vitesse approximative du son dans l’air ?', ['340 m/s', '34 m/s', '3 400 m/s', '1 200 m/s']],
+  ['Quel est l’aliment principal du panda géant ?', ['Le bambou', 'L’eucalyptus', 'Le riz', 'Le poisson']],
+  ['Combien de joueurs par équipe sur le terrain au basket ?', ['5', '6', '7', '4']],
+  ['Quelle est la capitale du Canada ?', ['Ottawa', 'Toronto', 'Montréal', 'Vancouver']],
+  ['En quelle année l’Homme a-t-il marché sur la Lune pour la première fois ?', ['1969', '1965', '1972', '1959']],
+  ['Comment s’appelle notre galaxie ?', ['La Voie lactée', 'Andromède', 'Le Triangle', 'Le Sombrero']],
+  ['Combien de litres de sang a environ un adulte ?', ['5', '2', '10', '8']],
+  ['Quelle note vient juste après sol dans la gamme ?', ['La', 'Fa', 'Si', 'Do']],
+  ['Quel insecte fabrique le miel ?', ['L’abeille', 'La guêpe', 'Le frelon', 'La coccinelle']],
+  ['Combien de côtés a un hexagone ?', ['6', '5', '7', '8']],
+  ['Quelle ville a accueilli les Jeux olympiques d’été 2024 ?', ['Paris', 'Los Angeles', 'Tokyo', 'Londres']],
+  ['Quelle est la plus grosse planète du système solaire ?', ['Jupiter', 'Saturne', 'Neptune', 'Uranus']],
+  ['Quel est le plus grand désert chaud du monde ?', ['Le Sahara', 'Le Gobi', 'Le Kalahari', 'L’Atacama']],
+  ['Quel réseau social a un fantôme pour logo ?', ['Snapchat', 'TikTok', 'Instagram', 'BeReal']],
+  ['Combien de joueurs par équipe sur le terrain au football ?', ['11', '10', '12', '9']],
+  ['Dans quel pays a été fondée la marque IKEA ?', ['Suède', 'Norvège', 'Danemark', 'Finlande']],
+  ['Quelle est la boisson la plus consommée au monde après l’eau ?', ['Le thé', 'Le café', 'La bière', 'Le soda']],
+  ['Quel est l’animal national de l’Écosse ?', ['La licorne', 'Le lion', 'Le cerf', 'L’aigle']],
+  ['Combien de temps dure un match de football, hors arrêts de jeu ?', ['90 minutes', '80 minutes', '100 minutes', '60 minutes']],
+  ['Quels fruits secs entrent dans le pesto genovese ?', ['Les pignons de pin', 'Les amandes', 'Les noix', 'Les noisettes']],
+];
+
+const WHO = [
+  's’endormir devant un film',
+  'manger le dernier gâteau en cachette',
+  'se perdre même avec un GPS',
+  'pleurer devant un dessin animé',
+  'oublier un anniversaire',
+  'passer 30 minutes à choisir quoi regarder',
+  'dire « j’ai pas faim » puis piquer dans l’assiette de l’autre',
+  'chanter faux sous la douche',
+  'survivre le plus longtemps dans un film d’horreur',
+  'craquer pendant les soldes',
+  'être de mauvaise humeur au réveil',
+  'tricher à un jeu de société',
+  'devenir célèbre sur Internet',
+  'révéler un secret sans faire exprès',
+  'rater un train ou un avion',
+  'ramener un animal à la maison sans prévenir',
+  'parler à un animal comme à un bébé',
+  'devenir grognon quand il a faim',
+  'prendre 50 photos pour en garder une',
+  'paniquer quand le Wi-Fi coupe',
+  'envoyer un message à la mauvaise personne',
+  'voler toute la couverture la nuit',
+  'regarder un épisode en cachette de l’autre',
+  'dire « encore cinq minutes » au réveil',
+  'rire de sa propre blague avant la fin',
+  'gagner à un jeu télé',
+  'danser n’importe comment en soirée',
+  'hurler en voyant une araignée',
+  'chercher ses clés alors qu’elles sont dans sa main',
+  'se plaindre d’avoir froid',
+  'finir le paquet de chips tout seul',
+  'faire une sieste de trois heures',
+  'commencer un projet sans jamais le finir',
+  'parler en dormant',
+  'devenir accro à un nouveau jeu sur son téléphone',
+  'commander la même chose à chaque fois au resto',
+  'se faire avoir par un vendeur trop sympa',
+  'laisser traîner ses chaussettes',
+  'raconter la même anecdote pour la dixième fois',
+  'adopter un accent bizarre en vacances',
+];
+
+const WYR = [
+  ['Pouvoir voler', 'Être invisible'],
+  ['Ne plus jamais manger de fromage', 'Ne plus jamais manger de chocolat'],
+  ['Avoir toujours un peu trop chaud', 'Avoir toujours un peu trop froid'],
+  ['Parler toutes les langues', 'Parler aux animaux'],
+  ['Vacances à la montagne', 'Vacances à la mer'],
+  ['Un mois sans téléphone', 'Un mois à dormir par terre'],
+  ['Lire dans les pensées', 'Voir l’avenir'],
+  ['Pizza à chaque repas', 'Burger à chaque repas'],
+  ['Voyager dans le passé', 'Voyager dans le futur'],
+  ['Une cabane perdue en forêt', 'Un loft en plein centre-ville'],
+  ['Chanter tout ce que tu dis', 'Danser chaque fois que tu marches'],
+  ['1 million d’euros tout de suite', '5 000 € par mois à vie'],
+  ['Avoir un chat', 'Avoir un chien'],
+  ['Plus jamais de café', 'Plus jamais de sucre'],
+  ['Se lever à 5 h tous les jours', 'Se coucher à 20 h tous les jours'],
+  ['Une maison hantée gratuite', 'Un studio de 15 m² hors de prix'],
+  ['Éternuer des confettis', 'Roter des bulles de savon'],
+  ['Coincé 3 h dans un ascenseur avec ton patron', 'Coincé 3 h avec un mime qui ne s’arrête jamais'],
+  ['Un caillou dans la chaussure à vie', 'Une chaussette mouillée à vie'],
+  ['Que des films d’horreur', 'Que des comédies romantiques'],
+  ['Explorer l’espace', 'Explorer les fonds marins'],
+  ['Le Wi-Fi gratuit partout', 'Les transports gratuits partout'],
+  ['Ne plus jamais faire la vaisselle', 'Ne plus jamais faire le linge'],
+  ['Être super fort', 'Être super rapide'],
+  ['Avoir un dragon', 'Être un dragon'],
+  ['Revivre tes 18 ans', 'Avoir directement 40 ans'],
+  ['Ne jamais pouvoir mentir', 'Que tout le monde croie tes mensonges'],
+  ['Un week-end surprise', 'Une fête surprise'],
+  ['Une voix d’hélium à vie', 'Une voix de méchant de film à vie'],
+  ['Savoir tout cuisiner', 'Savoir tout réparer'],
+];
+
+const SUITS = [
+  { symbol: '\u2660\uFE0E', red: false },
+  { symbol: '\u2665\uFE0E', red: true },
+  { symbol: '\u2666\uFE0E', red: true },
+  { symbol: '\u2663\uFE0E', red: false },
+];
+const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'V', 'D', 'R'];
+
+const cardHtml = (card, hidden = false) => hidden
+  ? '<div class="card back"></div>'
+  : `<div class="card${SUITS[card.s].red ? ' red' : ''}"><b>${card.r}</b><i>${SUITS[card.s].symbol}</i></div>`;
+
+function handValue(hand) {
+  let total = 0;
+  let aces = 0;
+  for (const card of hand) {
+    if (card.r === 'A') {
+      total += 11;
+      aces++;
+    } else {
+      total += ['V', 'D', 'R'].includes(card.r) ? 10 : Number(card.r);
+    }
+  }
+  while (total > 21 && aces) {
+    total -= 10;
+    aces--;
+  }
+  return total;
+}
+
+class Game {
+  constructor(room) {
+    this.room = room;
+    this.timers = new Set();
+    this.over = false;
+  }
+
+  later(fn, ms) {
+    const id = setTimeout(() => {
+      this.timers.delete(id);
+      fn();
+    }, ms);
+    this.timers.add(id);
+  }
+
+  clearTimers() {
+    this.timers.forEach(clearTimeout);
+    this.timers.clear();
+  }
+
+  name(i) {
+    return this.room.players[i]?.name ?? `Joueur ${i + 1}`;
+  }
+
+  update() {
+    this.room.update();
+  }
+
+  finish(result) {
+    this.clearTimers();
+    this.over = true;
+    this.result = result;
+    this.room.record(result);
+    this.update();
+  }
+
+  winnerByScore(scores) {
+    if (scores[0] === scores[1]) return null;
+    return scores[0] > scores[1] ? 0 : 1;
+  }
+
+  scoreLine(scores) {
+    return `${this.name(0)} ${scores[0]} – ${scores[1]} ${this.name(1)}`;
+  }
+
+  scoreboard(scores) {
+    return `<div class="scoreboard">${[0, 1].map(i => `<div class="score p${i}"><span>${esc(this.name(i))}</span><strong>${scores[i]}</strong></div>`).join('')}</div>`;
+  }
+
+  playerTag(i) {
+    return `<em class="tag p${i}">${esc(this.name(i))}</em>`;
+  }
+}
+
+class Quiz extends Game {
+  static id = 'quiz';
+  static title = 'Quiz express';
+  static tagline = 'Bonne réponse : 1 point. Le plus rapide des deux : 1 point bonus.';
+
+  start() {
+    this.rounds = shuffle(QUIZ).slice(0, 10).map(([q, answers]) => ({
+      q,
+      options: shuffle(answers.map((text, i) => ({ text, correct: i === 0 }))),
+    }));
+    this.index = -1;
+    this.scores = [0, 0];
+    this.next();
+  }
+
+  next() {
+    this.clearTimers();
+    this.index++;
+    if (this.index >= this.rounds.length) {
+      const winner = this.winnerByScore(this.scores);
+      return this.finish({
+        winner,
+        title: winner === null ? 'Égalité parfaite' : `${this.name(winner)} est le cerveau du couple`,
+        detail: this.scoreLine(this.scores),
+      });
+    }
+    this.picks = [null, null];
+    this.first = null;
+    this.gained = [0, 0];
+    this.phase = 'ask';
+    this.deadline = Date.now() + 20000;
+    this.update();
+    this.tick();
+  }
+
+  remaining() {
+    return Math.max(0, Math.ceil((this.deadline - Date.now()) / 1000));
+  }
+
+  tick() {
+    if (this.phase !== 'ask') return;
+    const left = this.remaining();
+    const timer = document.getElementById('timer');
+    if (timer) timer.textContent = left;
+    if (left <= 0) return this.reveal();
+    this.later(() => this.tick(), 250);
+  }
+
+  act(i, id) {
+    if (this.phase !== 'ask' || this.picks[i] !== null || !/^o[0-3]$/.test(id)) return;
+    const choice = Number(id[1]);
+    this.picks[i] = choice;
+    if (this.rounds[this.index].options[choice].correct && this.first === null) this.first = i;
+    if (this.picks.every(p => p !== null)) this.reveal();
+    else this.update();
+  }
+
+  reveal() {
+    this.clearTimers();
+    this.phase = 'reveal';
+    const { options } = this.rounds[this.index];
+    for (const i of [0, 1]) {
+      const right = this.picks[i] !== null && options[this.picks[i]].correct;
+      this.gained[i] = right ? 1 + (this.first === i ? 1 : 0) : 0;
+      this.scores[i] += this.gained[i];
+    }
+    this.update();
+    this.later(() => this.next(), 5000);
+  }
+
+  tv() {
+    const round = this.rounds[this.index];
+    const reveal = this.phase === 'reveal';
+    const options = round.options.map((option, k) => {
+      const cls = reveal ? (option.correct ? ' correct' : ' dim') : '';
+      const tags = reveal ? [0, 1].filter(i => this.picks[i] === k).map(i => this.playerTag(i)).join('') : '';
+      return `<div class="option t${k}${cls}"><span class="letter">${'ABCD'[k]}</span><span class="otext">${esc(option.text)}</span>${tags}</div>`;
+    }).join('');
+    const chips = [0, 1].map(i => reveal
+      ? `<span class="chip p${i} done">${esc(this.name(i))} +${this.gained[i]}</span>`
+      : `<span class="chip p${i}${this.picks[i] !== null ? ' done' : ''}">${esc(this.name(i))} ${this.picks[i] !== null ? 'a répondu' : 'réfléchit…'}</span>`
+    ).join('');
+    return `
+      <div class="stage">
+        <div class="topline">
+          <span class="kicker">Question ${this.index + 1}/${this.rounds.length}</span>
+          ${reveal ? '' : `<span class="timer" id="timer">${this.remaining()}</span>`}
+        </div>
+        <h2 class="question">${esc(round.q)}</h2>
+        <div class="options">${options}</div>
+        <div class="chips">${chips}</div>
+        ${this.scoreboard(this.scores)}
+      </div>`;
+  }
+
+  view(i) {
+    const round = this.rounds[this.index];
+    const title = `Question ${this.index + 1}/${this.rounds.length}`;
+    if (this.phase === 'ask') {
+      return {
+        title,
+        text: round.q,
+        buttons: round.options.map((option, k) => ({
+          id: `o${k}`,
+          label: `${'ABCD'[k]}. ${option.text}`,
+          tone: `t${k}`,
+          selected: this.picks[i] === k,
+          disabled: this.picks[i] !== null && this.picks[i] !== k,
+        })),
+      };
+    }
+    const gained = this.gained[i];
+    return {
+      title,
+      text: gained === 2 ? 'Bonne réponse, et le plus rapide ! +2' : gained === 1 ? 'Bonne réponse ! +1' : 'Raté…',
+      tone: gained ? 'good' : 'bad',
+    };
+  }
+}
+
+class WhoOfUs extends Game {
+  static id = 'who';
+  static title = 'Qui de nous deux ?';
+  static tagline = 'Votez en secret pour l’un de vous deux, puis découvrez si vous êtes d’accord.';
+
+  start() {
+    this.prompts = shuffle(WHO).slice(0, 10);
+    this.index = -1;
+    this.matches = 0;
+    this.next();
+  }
+
+  next() {
+    this.index++;
+    if (this.index >= this.prompts.length) {
+      const n = this.matches;
+      const verdict = n >= 9 ? 'Télépathie totale.' : n >= 6 ? 'Bien synchronisés.' : n >= 3 ? 'Quelques débats en perspective.' : 'Vous êtes sûrs de vous connaître ?';
+      return this.finish({ winner: null, title: `${n}/${this.prompts.length} réponses identiques`, detail: verdict });
+    }
+    this.votes = [null, null];
+    this.phase = 'vote';
+    this.update();
+  }
+
+  act(i, id) {
+    if (this.phase === 'vote' && this.votes[i] === null && (id === 'v0' || id === 'v1')) {
+      this.votes[i] = Number(id[1]);
+      if (this.votes.every(v => v !== null)) {
+        this.phase = 'reveal';
+        if (this.votes[0] === this.votes[1]) this.matches++;
+      }
+      this.update();
+    } else if (this.phase === 'reveal' && id === `next:${this.index}`) {
+      this.next();
+    }
+  }
+
+  tv() {
+    let body;
+    if (this.phase === 'vote') {
+      body = `<div class="chips">${[0, 1].map(i => `<span class="chip p${i}${this.votes[i] !== null ? ' done' : ''}">${esc(this.name(i))} ${this.votes[i] !== null ? 'a voté' : 'réfléchit…'}</span>`).join('')}</div>`;
+    } else {
+      const same = this.votes[0] === this.votes[1];
+      body = `
+        <div class="verdict ${same ? 'good' : 'bad'}">${same ? `D’accord tous les deux : ${esc(this.name(this.votes[0]))} !` : 'Désaccord total, à vous de débattre.'}</div>
+        <div class="votes">${[0, 1].map(i => `<div class="vote p${i}"><span>${esc(this.name(i))} a voté</span><strong>${esc(this.name(this.votes[i]))}</strong></div>`).join('')}</div>`;
+    }
+    return `
+      <div class="stage">
+        <div class="topline">
+          <span class="kicker">Question ${this.index + 1}/${this.prompts.length}</span>
+          <span class="kicker">${this.matches} en commun</span>
+        </div>
+        <p class="lead">Qui de nous deux est le plus susceptible…</p>
+        <h2 class="question">${esc(withDe(this.prompts[this.index]))} ?</h2>
+        ${body}
+      </div>`;
+  }
+
+  view(i) {
+    const title = `Question ${this.index + 1}/${this.prompts.length}`;
+    if (this.phase === 'vote') {
+      if (this.votes[i] !== null) return { title, text: 'Vote enregistré. On attend l’autre…' };
+      return {
+        title,
+        text: `Qui de nous deux est le plus susceptible ${withDe(this.prompts[this.index])} ?`,
+        buttons: [0, 1].map(k => ({ id: `v${k}`, label: k === i ? `Moi (${this.name(k)})` : this.name(k), tone: `p${k}` })),
+      };
+    }
+    const same = this.votes[0] === this.votes[1];
+    return {
+      title,
+      text: same ? 'Même réponse !' : 'Pas d’accord… défendez-vous !',
+      tone: same ? 'good' : 'bad',
+      buttons: [{ id: `next:${this.index}`, label: 'Question suivante', tone: 'primary' }],
+    };
+  }
+}
+
+class WouldYouRather extends Game {
+  static id = 'wyr';
+  static title = 'Tu préfères…';
+  static tagline = 'Choisis pour toi, puis devine le choix de l’autre. 1 point par bonne prédiction.';
+
+  start() {
+    this.rounds = shuffle(WYR).slice(0, 8);
+    this.index = -1;
+    this.scores = [0, 0];
+    this.next();
+  }
+
+  next() {
+    this.index++;
+    if (this.index >= this.rounds.length) {
+      const winner = this.winnerByScore(this.scores);
+      return this.finish({
+        winner,
+        title: winner === null ? 'Égalité, vous vous connaissez autant' : `${this.name(winner)} lit dans les pensées`,
+        detail: this.scoreLine(this.scores),
+      });
+    }
+    this.own = [null, null];
+    this.guess = [null, null];
+    this.phase = 'pick';
+    this.update();
+  }
+
+  act(i, id) {
+    if (this.phase === 'pick') {
+      if (this.own[i] === null && (id === 'a' || id === 'b')) this.own[i] = id;
+      else if (this.own[i] !== null && this.guess[i] === null && (id === 'ga' || id === 'gb')) this.guess[i] = id[1];
+      else return;
+      if (this.guess.every(g => g !== null)) {
+        this.phase = 'reveal';
+        for (const k of [0, 1]) if (this.guess[k] === this.own[1 - k]) this.scores[k]++;
+      }
+      this.update();
+    } else if (this.phase === 'reveal' && id === `next:${this.index}`) {
+      this.next();
+    }
+  }
+
+  tv() {
+    const [a, b] = this.rounds[this.index];
+    const reveal = this.phase === 'reveal';
+    const sides = [['a', a], ['b', b]].map(([key, text]) => {
+      const tags = reveal ? [0, 1].filter(i => this.own[i] === key).map(i => this.playerTag(i)).join('') : '';
+      return `<div class="choice c${key}"><span>${esc(text)}</span><div class="tags">${tags}</div></div>`;
+    }).join('<div class="or">ou</div>');
+    const chips = [0, 1].map(i => {
+      if (reveal) {
+        const right = this.guess[i] === this.own[1 - i];
+        return `<span class="chip p${i}${right ? ' done' : ''}">${esc(this.name(i))} ${right ? 'avait deviné, +1' : 's’est trompé'}</span>`;
+      }
+      const state = this.guess[i] !== null ? 'est prêt' : this.own[i] !== null ? 'devine…' : 'choisit…';
+      return `<span class="chip p${i}${this.guess[i] !== null ? ' done' : ''}">${esc(this.name(i))} ${state}</span>`;
+    }).join('');
+    return `
+      <div class="stage">
+        <div class="topline"><span class="kicker">Manche ${this.index + 1}/${this.rounds.length}</span></div>
+        <h2 class="question">Tu préfères…</h2>
+        <div class="duo">${sides}</div>
+        <div class="chips">${chips}</div>
+        ${this.scoreboard(this.scores)}
+      </div>`;
+  }
+
+  view(i) {
+    const [a, b] = this.rounds[this.index];
+    const title = `Manche ${this.index + 1}/${this.rounds.length}`;
+    const other = this.name(1 - i);
+    if (this.phase === 'pick') {
+      if (this.own[i] === null) {
+        return { title, text: 'Toi, tu préfères…', buttons: [{ id: 'a', label: a, tone: 'ca' }, { id: 'b', label: b, tone: 'cb' }] };
+      }
+      if (this.guess[i] === null) {
+        return { title, text: `Et d’après toi, ${other} préfère…`, buttons: [{ id: 'ga', label: a, tone: 'ca' }, { id: 'gb', label: b, tone: 'cb' }] };
+      }
+      return { title, text: 'C’est noté. On attend l’autre…' };
+    }
+    const right = this.guess[i] === this.own[1 - i];
+    return {
+      title,
+      text: right ? 'Bien vu, +1 !' : `Raté, ${other} a fait l’autre choix.`,
+      tone: right ? 'good' : 'bad',
+      buttons: [{ id: `next:${this.index}`, label: 'Manche suivante', tone: 'primary' }],
+    };
+  }
+}
+
+class Reflex extends Game {
+  static id = 'reflex';
+  static title = 'Duel de réflexes';
+  static tagline = 'Tapez dès que la télé passe au vert. Trop tôt, c’est perdu. Premier à 5.';
+
+  start() {
+    this.target = 5;
+    this.scores = [0, 0];
+    this.round = 0;
+    this.newRound();
+  }
+
+  newRound() {
+    this.clearTimers();
+    this.round++;
+    this.phase = 'wait';
+    this.outcome = null;
+    this.update();
+    this.later(() => {
+      this.phase = 'go';
+      this.goAt = performance.now();
+      this.update();
+    }, 2000 + Math.random() * 4000);
+  }
+
+  act(i, id) {
+    if (id !== 'tap') return;
+    if (this.phase === 'wait') this.resolve(1 - i, { early: i });
+    else if (this.phase === 'go') this.resolve(i, { ms: Math.round(performance.now() - this.goAt) });
+  }
+
+  resolve(winner, info) {
+    this.clearTimers();
+    this.phase = 'result';
+    this.scores[winner]++;
+    this.outcome = { winner, ...info };
+    this.update();
+    if (this.scores[winner] >= this.target) {
+      this.later(() => this.finish({
+        winner,
+        title: `${this.name(winner)} a les meilleurs réflexes`,
+        detail: this.scoreLine(this.scores),
+      }), 2500);
+    } else {
+      this.later(() => this.newRound(), 2500);
+    }
+  }
+
+  tv() {
+    let signal = 'Attendez…';
+    let hint = 'Ne touchez à rien';
+    if (this.phase === 'go') {
+      signal = 'TAPEZ !';
+      hint = '';
+    } else if (this.phase === 'result') {
+      const o = this.outcome;
+      signal = `${this.name(o.winner)} gagne la manche`;
+      hint = o.early !== undefined ? `${this.name(o.early)} est parti trop tôt` : `en ${o.ms} ms`;
+    }
+    return `
+      <div class="reflex ${this.phase}">
+        <div class="kicker">Manche ${this.round} · premier à ${this.target}</div>
+        <div class="signal">${esc(signal)}</div>
+        <div class="hint">${esc(hint)}</div>
+        ${this.scoreboard(this.scores)}
+      </div>`;
+  }
+
+  view(i) {
+    const won = this.outcome?.winner === i;
+    return {
+      title: `Manche ${this.round}`,
+      text: this.phase === 'result' ? (won ? 'Manche gagnée !' : 'Manche perdue') : 'Regarde la télé et tape au vert',
+      tone: this.phase === 'result' ? (won ? 'good' : 'bad') : undefined,
+      big: { id: 'tap', label: 'TAPE' },
+    };
+  }
+}
+
+class Blackjack extends Game {
+  static id = 'blackjack';
+  static title = 'Black-jack en duel';
+  static tagline = 'Approche-toi de 21 sans dépasser. Vos mains restent secrètes jusqu’au bout. Premier à 3.';
+
+  start() {
+    this.target = 3;
+    this.scores = [0, 0];
+    this.round = 0;
+    this.newRound();
+  }
+
+  newRound() {
+    this.round++;
+    this.deck = shuffle(SUITS.flatMap((_, s) => RANKS.map(r => ({ r, s }))));
+    this.hands = [[this.deck.pop(), this.deck.pop()], [this.deck.pop(), this.deck.pop()]];
+    this.state = this.hands.map(hand => (handValue(hand) === 21 ? 'stand' : 'play'));
+    this.phase = 'play';
+    if (this.state.every(s => s !== 'play')) this.reveal();
+    else this.update();
+  }
+
+  act(i, id) {
+    if (this.phase === 'play' && this.state[i] === 'play') {
+      if (id === 'hit') {
+        this.hands[i].push(this.deck.pop());
+        const value = handValue(this.hands[i]);
+        if (value > 21) this.state[i] = 'bust';
+        else if (value === 21) this.state[i] = 'stand';
+      } else if (id === 'stand') {
+        this.state[i] = 'stand';
+      } else {
+        return;
+      }
+      if (this.state.every(s => s !== 'play')) this.reveal();
+      else this.update();
+    } else if (this.phase === 'reveal' && id === `next:${this.round}`) {
+      const winner = this.scores.findIndex(s => s >= this.target);
+      if (winner !== -1) {
+        this.finish({ winner, title: `${this.name(winner)} rafle la mise`, detail: this.scoreLine(this.scores) });
+      } else {
+        this.newRound();
+      }
+    }
+  }
+
+  reveal() {
+    this.phase = 'reveal';
+    const values = this.hands.map(handValue);
+    const alive = values.map(v => v <= 21);
+    let winner = null;
+    if (alive[0] && alive[1]) winner = values[0] === values[1] ? null : (values[0] > values[1] ? 0 : 1);
+    else if (alive[0]) winner = 0;
+    else if (alive[1]) winner = 1;
+    this.roundWinner = winner;
+    if (winner !== null) this.scores[winner]++;
+    this.update();
+  }
+
+  tv() {
+    const reveal = this.phase === 'reveal';
+    const seats = [0, 1].map(i => {
+      const value = handValue(this.hands[i]);
+      const cards = this.hands[i].map((card, k) => cardHtml(card, !reveal && k > 0)).join('');
+      const status = reveal ? (value > 21 ? `Sauté (${value})` : String(value)) : (this.state[i] === 'play' ? 'réfléchit…' : 'a terminé');
+      return `
+        <div class="seat p${i}${reveal && this.roundWinner === i ? ' win' : ''}">
+          <div class="seat-head"><span>${esc(this.name(i))}</span><em>${esc(status)}</em></div>
+          <div class="hand">${cards}</div>
+        </div>`;
+    }).join('');
+    const banner = reveal
+      ? `<div class="verdict ${this.roundWinner === null ? '' : 'good'}">${this.roundWinner === null ? 'Égalité' : `${esc(this.name(this.roundWinner))} remporte la manche`}</div>`
+      : '';
+    return `
+      <div class="stage">
+        <div class="topline"><span class="kicker">Manche ${this.round} · premier à ${this.target}</span></div>
+        <div class="table">${seats}</div>
+        ${banner}
+        ${this.scoreboard(this.scores)}
+      </div>`;
+  }
+
+  view(i) {
+    const cards = this.hands[i];
+    const value = handValue(cards);
+    const title = `Manche ${this.round}`;
+    if (this.phase === 'play') {
+      if (this.state[i] === 'play') {
+        return {
+          title,
+          text: `Ta main : ${value}`,
+          cards,
+          layout: 'row',
+          buttons: [{ id: 'hit', label: 'Carte', tone: 'primary' }, { id: 'stand', label: 'Je reste' }],
+        };
+      }
+      if (this.state[i] === 'bust') return { title, text: `Sauté avec ${value}… chut, fais comme si de rien n’était.`, tone: 'bad', cards };
+      return { title, text: `Tu restes à ${value}. On attend ${this.name(1 - i)}…`, cards };
+    }
+    const w = this.roundWinner;
+    const last = this.scores.some(s => s >= this.target);
+    return {
+      title,
+      text: w === null ? 'Égalité' : w === i ? 'Manche gagnée !' : 'Manche perdue',
+      tone: w === null ? undefined : (w === i ? 'good' : 'bad'),
+      cards,
+      buttons: [{ id: `next:${this.round}`, label: last ? 'Voir le résultat' : 'Manche suivante', tone: 'primary' }],
+    };
+  }
+}
+
+const GAMES = [Quiz, WhoOfUs, WouldYouRather, Reflex, Blackjack];
+
+const host = { peer: null, code: '', error: '', qr: '' };
+
+const room = {
+  players: [null, null],
+  game: null,
+  sent: [null, null],
+
+  ready() {
+    return Boolean(this.players[0] && this.players[1]);
+  },
+
+  update() {
+    renderTv();
+    this.push(0);
+    this.push(1);
+  },
+
+  push(i) {
+    const player = this.players[i];
+    if (!player?.conn?.open) return;
+    const view = this.viewFor(i);
+    const json = JSON.stringify(view);
+    if (json === this.sent[i]) return;
+    this.sent[i] = json;
+    player.conn.send({ t: 'view', view, slot: i });
+  },
+
+  viewFor(i) {
+    if (!this.ready()) {
+      return { title: `Salut ${this.players[i].name}`, text: 'En attente du deuxième joueur. Scanne le QR code de la télé avec l’autre téléphone.' };
+    }
+    if (!this.game) {
+      return { title: 'Choisissez un jeu', buttons: GAMES.map(G => ({ id: `g:${G.id}`, label: G.title, sub: G.tagline })) };
+    }
+    if (this.game.over) {
+      const r = this.game.result;
+      return {
+        title: 'Partie terminée',
+        text: r.winner === null ? r.title : (r.winner === i ? 'Victoire !' : 'Défaite…'),
+        tone: r.winner === null ? undefined : (r.winner === i ? 'good' : 'bad'),
+        buttons: [{ id: 'again', label: 'Rejouer', tone: 'primary' }, { id: 'menu', label: 'Retour au menu' }],
+      };
+    }
+    return { ...this.game.view(i), quit: true };
+  },
+
+  act(i, id) {
+    if (id === 'quit' || (id === 'menu' && this.game?.over)) {
+      this.stop();
+      return this.update();
+    }
+    if (!this.game) {
+      const G = GAMES.find(g => `g:${g.id}` === id);
+      if (G && this.ready()) this.launch(G);
+      return;
+    }
+    if (this.game.over) {
+      if (id === 'again') this.launch(this.game.constructor);
+      return;
+    }
+    this.game.act(i, id);
+  },
+
+  launch(G) {
+    this.stop();
+    this.game = new G(this);
+    this.game.start();
+  },
+
+  stop() {
+    if (!this.game) return;
+    this.game.clearTimers();
+    this.game = null;
+  },
+
+  record(result) {
+    if (result.winner !== null && this.players[result.winner]) this.players[result.winner].trophies++;
+  },
+};
+
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const newCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+const joinUrl = () => `${location.origin}${location.pathname}?room=${host.code}`;
+
+function renderTv() {
+  const chips = [0, 1].map(i => {
+    const p = room.players[i];
+    if (!p) return `<div class="pchip empty">Joueur ${i + 1}</div>`;
+    return `<div class="pchip p${i}${p.conn?.open ? '' : ' off'}"><span class="dot"></span>${esc(p.name)}<b title="Victoires">${p.trophies}</b></div>`;
+  }).join('');
+
+  let main;
+  if (!room.ready()) main = lobbyHtml();
+  else if (!room.game) main = menuHtml();
+  else if (room.game.over) main = endHtml(room.game);
+  else main = room.game.tv();
+
+  app.innerHTML = `
+    <div class="tv">
+      <header class="bar">
+        <div class="brand">Canapé<span>.</span></div>
+        <div class="players">${chips}</div>
+        <div class="code">Salle <b>${esc(host.code)}</b></div>
+      </header>
+      <main class="tv-main">${main}</main>
+    </div>`;
+}
+
+function lobbyHtml() {
+  const joined = room.players.filter(Boolean).map(p => esc(p.name));
+  return `
+    <div class="lobby">
+      <div class="qr">${host.qr ? `<img src="${host.qr}" alt="QR code pour rejoindre">` : '<div class="qr-wait">Connexion…</div>'}</div>
+      <div>
+        <h1>Scannez pour jouer</h1>
+        <p>Chaque joueur scanne ce code avec son téléphone, entre son prénom, et c’est parti.</p>
+        <p class="url">${esc(joinUrl())}</p>
+        ${host.error ? `<p class="error">${esc(host.error)}</p>` : ''}
+        <p class="muted">${joined.length ? `Déjà là : ${joined.join(', ')}` : 'Personne pour l’instant.'}</p>
+      </div>
+    </div>`;
+}
+
+function menuHtml() {
+  const tiles = GAMES.map((G, k) => `
+    <div class="tile">
+      <span class="num">${String(k + 1).padStart(2, '0')}</span>
+      <h2>${esc(G.title)}</h2>
+      <p>${esc(G.tagline)}</p>
+    </div>`).join('');
+  return `
+    <div class="menu">
+      <h1>Choisissez un jeu sur votre téléphone</h1>
+      <div class="grid">${tiles}</div>
+    </div>`;
+}
+
+function endHtml(game) {
+  const r = game.result;
+  return `
+    <div class="end">
+      <span class="kicker">${esc(game.constructor.title)}</span>
+      <h1>${esc(r.title)}</h1>
+      <p>${esc(r.detail)}</p>
+      <p class="muted">Rejouer ou revenir au menu depuis un téléphone.</p>
+    </div>`;
+}
+
+function makeQr() {
+  const box = document.createElement('div');
+  new QRCode(box, { text: joinUrl(), width: 512, height: 512, colorDark: '#130f1d', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  const canvas = box.querySelector('canvas');
+  host.qr = canvas ? canvas.toDataURL() : (box.querySelector('img')?.src || '');
+}
+
+function startHost() {
+  host.code = store.get('canape-room') || newCode();
+  openHostPeer();
+  renderTv();
+}
+
+function openHostPeer() {
+  const peer = new Peer(HOST_PREFIX + host.code);
+  host.peer = peer;
+
+  peer.on('open', () => {
+    if (host.peer !== peer) return;
+    host.error = '';
+    store.set('canape-room', host.code);
+    makeQr();
+    renderTv();
+  });
+
+  peer.on('connection', conn => {
+    conn.on('data', msg => onHostMessage(conn, msg));
+    conn.on('close', () => onHostClose(conn));
+    conn.on('error', () => onHostClose(conn));
+  });
+
+  peer.on('disconnected', () => {
+    if (host.peer === peer && !peer.destroyed) peer.reconnect();
+  });
+
+  peer.on('error', err => {
+    if (host.peer !== peer) return;
+    if (err.type === 'unavailable-id') {
+      peer.destroy();
+      host.code = newCode();
+      host.qr = '';
+      openHostPeer();
+      renderTv();
+      return;
+    }
+    if (err.type === 'peer-unavailable') return;
+    host.error = 'Problème de connexion au serveur. Vérifie le Wi-Fi de la télé, nouvelle tentative en cours.';
+    renderTv();
+    setTimeout(() => {
+      if (host.peer === peer && !peer.open) {
+        peer.destroy();
+        openHostPeer();
+      }
+    }, 3000);
+  });
+}
+
+function onHostMessage(conn, msg) {
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'join') return join(conn, msg.name);
+  const i = room.players.findIndex(p => p?.conn === conn);
+  if (i !== -1 && msg.t === 'act' && typeof msg.id === 'string') room.act(i, msg.id);
+}
+
+function join(conn, rawName) {
+  const name = String(rawName ?? '').trim().slice(0, 16) || 'Joueur';
+  const key = name.toLowerCase();
+  let i = room.players.findIndex(p => p && p.name.toLowerCase() === key);
+  if (i === -1) i = room.players.findIndex(p => !p);
+  if (i === -1) i = room.players.findIndex(p => !p.conn?.open);
+  if (i === -1) {
+    conn.send({ t: 'full' });
+    return;
+  }
+  const previous = room.players[i];
+  const sameName = previous && previous.name.toLowerCase() === key;
+  room.players[i] = { name, conn, trophies: sameName ? previous.trophies : 0 };
+  if (previous?.conn && previous.conn !== conn) previous.conn.close();
+  room.sent[i] = null;
+  room.update();
+}
+
+function onHostClose(conn) {
+  const i = room.players.findIndex(p => p?.conn === conn);
+  if (i === -1) return;
+  room.players[i].conn = null;
+  room.sent[i] = null;
+  renderTv();
+}
+
+const player = { peer: null, conn: null, name: '', slot: null, view: null, retry: null, dialTimeout: null, full: false };
+
+function startPlayer() {
+  const saved = store.get('canape-name') || '';
+  app.innerHTML = `
+    <div class="pad">
+      <div class="brand">Canapé<span>.</span></div>
+      <form id="join-form" class="join-form">
+        <label for="name">Ton prénom</label>
+        <input id="name" maxlength="16" autocomplete="given-name" value="${esc(saved)}" required>
+        <button class="btn primary" type="submit">Rejoindre la salle ${esc(ROOM)}</button>
+      </form>
+    </div>`;
+
+  document.getElementById('join-form').addEventListener('submit', event => {
+    event.preventDefault();
+    player.name = document.getElementById('name').value.trim().slice(0, 16);
+    if (!player.name) return;
+    store.set('canape-name', player.name);
+    renderStatus('Connexion à la télé…');
+    connect();
+  });
+
+  app.addEventListener('click', event => {
+    const button = event.target.closest('[data-id]');
+    if (!button || button.disabled || button.dataset.fast) return;
+    if (button.dataset.id === 'quit' && !confirm('Quitter la partie en cours ?')) return;
+    send(button.dataset.id);
+  });
+
+  app.addEventListener('pointerdown', event => {
+    const button = event.target.closest('[data-fast]');
+    if (!button) return;
+    event.preventDefault();
+    button.classList.add('hit');
+    setTimeout(() => button.classList.remove('hit'), 120);
+    send(button.dataset.id);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && player.name && !player.full && !player.conn?.open) connect();
+  });
+}
+
+function connect() {
+  clearTimeout(player.retry);
+  if (!player.peer || player.peer.destroyed) {
+    const peer = new Peer();
+    player.peer = peer;
+    peer.on('open', () => {
+      if (player.peer === peer) dial();
+    });
+    peer.on('disconnected', () => {
+      if (player.peer === peer && !peer.destroyed) peer.reconnect();
+    });
+    peer.on('error', err => {
+      if (player.peer !== peer) return;
+      if (err.type === 'peer-unavailable') {
+        renderStatus('Télé introuvable. Vérifie que la page est bien ouverte sur la télé.', true);
+      } else {
+        peer.destroy();
+        player.peer = null;
+        renderStatus('Connexion perdue, nouvelle tentative…');
+      }
+      scheduleRetry();
+    });
+  } else if (player.peer.open) {
+    dial();
+  }
+}
+
+function dial() {
+  const old = player.conn;
+  player.conn = null;
+  old?.close();
+  clearTimeout(player.dialTimeout);
+
+  const conn = player.peer.connect(HOST_PREFIX + ROOM, { reliable: true });
+  player.conn = conn;
+
+  conn.on('open', () => {
+    if (player.conn !== conn) return;
+    clearTimeout(player.dialTimeout);
+    conn.send({ t: 'join', name: player.name });
+  });
+  conn.on('data', msg => {
+    if (player.conn === conn) onPlayerMessage(msg);
+  });
+  conn.on('close', () => {
+    if (player.conn !== conn || player.full) return;
+    player.conn = null;
+    renderStatus('Connexion perdue, reconnexion…');
+    scheduleRetry();
+  });
+
+  player.dialTimeout = setTimeout(() => {
+    if (player.conn !== conn || conn.open) return;
+    renderStatus('Impossible de joindre la télé. Êtes-vous bien sur le même Wi-Fi ?', true);
+    scheduleRetry();
+  }, 10000);
+}
+
+function scheduleRetry() {
+  if (player.full) return;
+  clearTimeout(player.retry);
+  player.retry = setTimeout(connect, 3000);
+}
+
+function send(id) {
+  if (id === '__retry') {
+    player.full = false;
+    renderStatus('Connexion à la télé…');
+    return connect();
+  }
+  if (player.conn?.open) player.conn.send({ t: 'act', id });
+}
+
+function onPlayerMessage(msg) {
+  if (msg?.t === 'view') {
+    player.view = msg.view;
+    player.slot = msg.slot;
+    renderView();
+  } else if (msg?.t === 'full') {
+    player.full = true;
+    player.conn?.close();
+    renderStatus('La partie est déjà complète avec deux joueurs.', true);
+  }
+}
+
+function renderStatus(text, withRetry = false) {
+  app.innerHTML = `
+    <div class="pad center">
+      <div class="brand">Canapé<span>.</span></div>
+      ${withRetry ? '' : '<div class="spinner"></div>'}
+      <p class="status">${esc(text)}</p>
+      ${withRetry ? '<button class="btn primary" data-id="__retry">Réessayer</button>' : ''}
+    </div>`;
+}
+
+function renderView() {
+  const v = player.view || {};
+  const buttons = (v.buttons || []).map(b => `
+    <button class="btn ${b.tone || ''}${b.selected ? ' selected' : ''}" data-id="${esc(b.id)}"${b.disabled || b.selected ? ' disabled' : ''}>
+      <span>${esc(b.label)}</span>${b.sub ? `<small>${esc(b.sub)}</small>` : ''}
+    </button>`).join('');
+
+  app.innerHTML = `
+    <div class="pad">
+      <div class="phead">
+        <div class="brand small">Canapé<span>.</span></div>
+        <span class="me p${player.slot}">${esc(player.name)}</span>
+      </div>
+      ${v.title ? `<h1 class="ptitle">${esc(v.title)}</h1>` : ''}
+      ${v.text ? `<p class="ptext ${v.tone || ''}">${esc(v.text)}</p>` : ''}
+      ${v.cards ? `<div class="hand">${v.cards.map(c => cardHtml(c)).join('')}</div>` : ''}
+      ${v.big ? `<button class="bigtap" data-id="${esc(v.big.id)}" data-fast="1">${esc(v.big.label)}</button>` : ''}
+      ${buttons ? `<div class="pbuttons ${v.layout || ''}">${buttons}</div>` : ''}
+      ${v.quit ? '<button class="link" data-id="quit">Quitter la partie</button>' : ''}
+    </div>`;
+}
+
+if (typeof Peer === 'undefined') {
+  app.innerHTML = '<div class="pad center"><p class="status">Impossible de charger le module réseau. Vérifie la connexion Internet puis recharge la page.</p></div>';
+} else if (ROOM) {
+  startPlayer();
+} else {
+  startHost();
+}
+</script>
+</body>
+</html>
