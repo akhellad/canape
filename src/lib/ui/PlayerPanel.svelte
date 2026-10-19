@@ -38,10 +38,8 @@
     padding: 1.2em 1em;
     border-radius: 1.4em;
     border: 0.16em dashed rgba(42, 12, 29, 0.35);
-    transition:
-      background 0.3s ease,
-      transform 0.4s var(--spring),
-      box-shadow 0.3s ease;
+    /* Background and text color switch together, so the name never sits on a half-faded fill. */
+    transition: transform 0.4s var(--spring);
   }
 
   .panel.active {

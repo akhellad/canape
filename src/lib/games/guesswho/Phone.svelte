@@ -190,14 +190,14 @@
   }
 
   .accusing .card:not(.down) {
-    animation: wiggle 0.6s ease-in-out infinite;
+    outline: 3px dashed var(--cherry);
+    outline-offset: 2px;
   }
 
   .card.chosen {
     background: var(--cherry);
     color: var(--cream);
     transform: scale(1.06);
-    animation: none;
   }
 
   .actions {

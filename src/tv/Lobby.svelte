@@ -210,9 +210,7 @@
     border: 0.16em dashed var(--ink-2);
     min-width: 15em;
     transform: rotate(var(--tilt));
-    transition:
-      background 0.3s ease,
-      transform 0.4s var(--spring);
+    transition: transform 0.4s var(--spring);
   }
 
   .seat.taken {

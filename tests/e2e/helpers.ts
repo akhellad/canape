@@ -36,13 +36,17 @@ export async function shot(page: Page, name: string): Promise<void> {
 
 export const contrastIssues: string[] = [];
 
-export async function look(page: Page, name: string): Promise<void> {
-  // Entrance animations fade elements in; measuring contrast mid-fade gives false alarms.
+// Entrance animations fade elements in; measuring contrast mid-fade gives false alarms.
+export async function animationsDone(page: Page): Promise<void> {
   await page.waitForFunction(() =>
     document
       .getAnimations()
       .every((animation) => animation.playState !== 'running' || animation.effect?.getTiming().iterations === Infinity),
   );
+}
+
+export async function look(page: Page, name: string): Promise<void> {
+  await animationsDone(page);
   await shot(page, name);
   const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
   for (const violation of results.violations) {

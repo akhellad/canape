@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { PeerServer } from 'peer';
-import { openTable, settled, shot, startGame, tapSettled, whichPhone } from './helpers';
+import { animationsDone, openTable, settled, shot, startGame, tapSettled, whichPhone } from './helpers';
 
 async function contrastViolations(page: Page) {
   const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
@@ -57,7 +57,7 @@ test('garde des textes lisibles (contraste) sur les écrans principaux', async (
   const table = await openTable(browser);
   const failures: string[] = [];
   const check = async (label: string, page: Page) => {
-    await page.waitForTimeout(800);
+    await animationsDone(page);
     for (const issue of await contrastViolations(page)) failures.push(`${label}: ${issue}`);
   };
   await check('tv menu', table.tv);

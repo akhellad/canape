@@ -125,9 +125,7 @@
     border: 0.15em dashed var(--ink);
     font-weight: 800;
     font-size: 1.15em;
-    transition:
-      background 0.3s ease,
-      transform 0.4s var(--spring);
+    transition: transform 0.4s var(--spring);
   }
 
   .who.ok {
