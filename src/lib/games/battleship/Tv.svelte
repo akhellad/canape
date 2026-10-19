@@ -29,7 +29,7 @@
 
 <section class="battle">
   <div class="top">
-    <h2>{headline}</h2>
+    <h2 class="pop">{headline}</h2>
     {#if view.phase !== 'place' && shotText && view.last}
       {#key view.last.seq}
         <div class="shot {view.last.result}" in:fly={{ y: -30, duration: 450, easing: backOut }}>
@@ -98,7 +98,7 @@
   }
 
   h2 {
-    font-size: 2.3em;
+    font-size: 2.8em;
     text-align: center;
   }
 
@@ -112,15 +112,17 @@
     font-family: var(--display);
     font-size: 1.6em;
     color: var(--ink);
-    background: #d7ecff;
+    background: var(--cream);
+    box-shadow: var(--shadow-sm);
+    transform: rotate(-2deg);
   }
 
   .shot.hit {
-    background: #ffb347;
+    background: var(--tangerine);
   }
 
   .shot.sunk {
-    background: var(--red);
+    background: var(--cherry);
     color: var(--cream);
   }
 
@@ -154,8 +156,12 @@
     display: flex;
     align-items: center;
     gap: 0.6em;
-    border-bottom: 0.16em solid var(--pc);
-    padding-bottom: 0.3em;
+    padding: 0.3em 0.9em 0.3em 0.5em;
+    border-radius: 999px;
+    border: 0.14em solid var(--ink);
+    background: var(--pc);
+    color: var(--pc-ink);
+    box-shadow: var(--shadow-sm);
   }
 
   .title {
@@ -165,12 +171,12 @@
 
   .state {
     margin-left: auto;
-    color: var(--muted);
     font-weight: 800;
+    opacity: 0.8;
   }
 
   .state.ok {
-    color: var(--good);
+    opacity: 1;
   }
 
   .sea-wrap {
@@ -179,7 +185,8 @@
   }
 
   .targeted .sea-wrap {
-    filter: drop-shadow(0 0 0.6em var(--pc));
+    animation: pulse-ring 1.4s ease-out infinite;
+    border-radius: 0.8em;
   }
 
   .radar {
@@ -188,7 +195,8 @@
     display: grid;
     place-items: center;
     border-radius: 0.8em;
-    background: rgba(10, 30, 50, 0.72);
+    background: rgba(31, 39, 163, 0.82);
+    color: var(--cream);
     overflow: hidden;
     font-weight: 800;
     font-size: 1.3em;
@@ -231,7 +239,7 @@
   .pill {
     height: 0.8em;
     border-radius: 999px;
-    background: #b8c3d1;
+    background: var(--cream);
     border: 0.1em solid var(--ink);
   }
 
@@ -241,7 +249,7 @@
   }
 
   .ships li.sunk .pill {
-    background: var(--red);
+    background: var(--cherry);
   }
 
   @keyframes radar {

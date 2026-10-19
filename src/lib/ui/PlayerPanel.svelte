@@ -24,7 +24,7 @@
   <Blob {slot} size="4.2em" bounce={active || crown} {mood} {crown} />
   <span class="name">{name}</span>
   {#if children}<div class="extra">{@render children()}</div>{/if}
-  {#if active}<span class="turn">À toi !</span>{/if}
+  {#if active}<span class="turn sticker">À toi !</span>{/if}
 </div>
 
 <style>
@@ -37,17 +37,19 @@
     gap: 0.6em;
     padding: 1.2em 1em;
     border-radius: 1.4em;
-    border: 0.16em solid transparent;
+    border: 0.16em dashed rgba(42, 12, 29, 0.35);
     transition:
-      border-color 0.3s ease,
       background 0.3s ease,
-      transform 0.3s ease;
+      transform 0.4s var(--spring),
+      box-shadow 0.3s ease;
   }
 
   .panel.active {
-    border-color: var(--pc);
-    background: var(--pc-soft);
-    transform: scale(1.04);
+    border: 0.16em solid var(--ink);
+    background: var(--pc);
+    color: var(--pc-ink);
+    box-shadow: var(--shadow);
+    transform: scale(1.05) rotate(-1.5deg);
   }
 
   .name {
@@ -70,14 +72,10 @@
 
   .turn {
     position: absolute;
-    top: -0.9em;
-    padding: 0.2em 0.9em;
-    border-radius: 999px;
-    background: var(--pc);
-    color: var(--ink);
-    border: 0.12em solid var(--ink);
-    font-family: var(--display);
-    font-size: 1.15em;
-    animation: bob 1s ease-in-out infinite;
+    top: -1em;
+    font-size: 1.1em;
+    background: var(--cream);
+    animation: wiggle 1s ease-in-out infinite;
+    --tilt: 4deg;
   }
 </style>

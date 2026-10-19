@@ -30,7 +30,7 @@
 
 <div class="status">
   <Blob slot={0} size="4rem" mood={content.spinner ? 'happy' : 'wow'} bounce={content.spinner} />
-  <h1>{content.title}</h1>
+  <h1 class="pop">{content.title}</h1>
   <p>{content.text}</p>
   {#if content.spinner}
     <div class="spinner" aria-hidden="true"></div>
@@ -62,7 +62,8 @@
 
   p {
     max-width: 22rem;
-    color: var(--muted);
+    color: var(--ink-2);
+    font-weight: 600;
     line-height: 1.4;
   }
 
@@ -70,14 +71,8 @@
     width: 2.6rem;
     height: 2.6rem;
     border-radius: 50%;
-    border: 0.3rem solid var(--plum-3);
-    border-top-color: var(--orange);
+    border: 0.3rem solid var(--blush);
+    border-top-color: var(--ink);
     animation: spin 0.9s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 </style>

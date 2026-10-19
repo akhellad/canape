@@ -1,3 +1,4 @@
+import { DeckHistory } from '../../src/lib/games/deck';
 import { Link } from '../../src/lib/net/link';
 import { createRng } from '../../src/lib/random';
 import type { TimerHost } from '../../src/lib/room/scheduler';
@@ -52,9 +53,11 @@ export function createTestContext(options: { seed?: number; starter?: Slot } = {
   const fx: TestContext['fx'] = [];
   const results: GameResult[] = [];
   let updates = 0;
+  const rng = createRng(options.seed ?? 42);
+  const decks = new DeckHistory();
   const ctx: GameContext = {
     starter: options.starter ?? 0,
-    rng: createRng(options.seed ?? 42),
+    rng,
     name: (slot) => (slot === 0 ? 'Léa' : 'Tom'),
     now: () => clock.now(),
     after: (ms, callback) => ({ id: clock.setTimeout(callback, ms) as number }),
@@ -70,6 +73,7 @@ export function createTestContext(options: { seed?: number; starter?: Slot } = {
     finish: (result) => {
       results.push(result);
     },
+    draw: (deck, pool, key) => decks.draw(deck, pool, key, rng),
   };
   return { ctx, clock, fx, results, updates: () => updates };
 }

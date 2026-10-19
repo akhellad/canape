@@ -18,7 +18,7 @@
       <span class="hint">Son coupé : appuie sur OK de la télécommande</span>
     {/if}
     {#if network !== 'ready'}
-      <span class="network" class:error={network === 'error'}>{network === 'error' ? 'Reconnexion…' : 'Connexion…'}</span>
+      <span class="network sticker" class:error={network === 'error'}>{network === 'error' ? 'Reconnexion…' : 'Connexion…'}</span>
     {/if}
     <PlayerChip slot={0} seat={seats[0]} />
     <PlayerChip slot={1} seat={seats[1]} />
@@ -28,6 +28,8 @@
 
 <style>
   .header {
+    position: relative;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -38,41 +40,52 @@
   .brand {
     display: flex;
     align-items: center;
-    gap: 0.6em;
+    gap: 0.7em;
   }
 
   .right {
     display: flex;
     align-items: center;
-    gap: 0.7em;
+    gap: 0.8em;
   }
 
   .hint {
-    font-size: 0.75em;
+    font-size: 0.8em;
+    font-weight: 700;
     color: var(--muted);
-    max-width: 14em;
+    max-width: 15em;
     text-align: right;
     line-height: 1.2;
   }
 
   .network {
-    padding: 0.2em 0.7em;
-    border-radius: 999px;
-    background: var(--plum-3);
-    font-size: 0.85em;
+    background: var(--cream);
   }
 
   .network.error {
-    background: var(--bad);
+    background: var(--cherry);
+    color: var(--cream);
   }
 
   .code {
-    color: var(--muted);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4em;
+    padding: 0.25em 0.8em 0.3em;
+    border-radius: 0.6em;
+    background: var(--ink);
+    color: var(--blush);
     font-weight: 800;
+    font-size: 1.05em;
+    transform: rotate(2deg);
+    box-shadow: 0.12em 0.16em 0 rgba(42, 12, 29, 0.35);
   }
 
   .code b {
-    color: var(--text);
-    letter-spacing: 0.15em;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.25em;
+    color: var(--butter);
+    letter-spacing: 0.12em;
   }
 </style>

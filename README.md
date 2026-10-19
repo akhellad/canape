@@ -5,13 +5,22 @@ La télé ouvre le site, chaque téléphone scanne le QR code, et c’est parti 
 
 ## Les jeux
 
-| Jeu                | Type      | Principe                                                                                      |
-| ------------------ | --------- | --------------------------------------------------------------------------------------------- |
-| **Kif-Kif**        | Duel      | Trouver le symbole commun entre sa carte et celle du milieu, plus vite que l’autre.           |
-| **Agents doubles** | En équipe | Faire deviner ses 15 agents à l’autre avec des indices d’un mot, sans tomber sur un assassin. |
-| **Gribouille**     | En équipe | L’un dessine sur son téléphone, l’autre devine, avec des contraintes farfelues.               |
-| **Puissance 4**    | Duel      | Aligner quatre jetons.                                                                        |
-| **Touché-coulé**   | Duel      | Placer sa flotte en secret et couler celle de l’autre.                                        |
+| Jeu                    | Type      | Principe                                                                                                 |
+| ---------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
+| **Gribouille**         | En équipe | L’un dessine sur son téléphone, l’autre devine. Plus de 1 100 mots, du plus facile au plus dur.          |
+| **Quiz**               | Duel      | Dix questions de culture générale, avec un bonus de rapidité. Près de 500 questions.                     |
+| **Qui de nous deux ?** | En équipe | Chacun répond en secret à « Qui de nous deux… ? » ou « Tu préfères… ? ». Un point si d’accord.           |
+| **Mots interdits**     | En équipe | Faire deviner un maximum de mots à l’oral en une minute, sans dire les mots interdits.                   |
+| **Petit Bac**          | Duel      | Une lettre, six catégories : chacun écrit sur son téléphone, et on peut refuser les réponses de l’autre. |
+| **Qui est-ce ?**       | Duel      | Chacun a un suspect secret parmi 24 ; questions à l’oral, élimination sur le téléphone.                  |
+| **Code secret**        | Duel      | Façon Mastermind : chacun cache un code de couleurs et casse celui de l’autre.                           |
+| **Touché-coulé**       | Duel      | Placer sa flotte en secret et couler celle de l’autre.                                                   |
+| **Puissance 4**        | Duel      | Aligner quatre jetons.                                                                                   |
+| **Reversi**            | Duel      | Encadrer les pions de l’autre pour les retourner.                                                        |
+| **Yams**               | Duel      | Cinq dés, trois lancers par tour, une grille de treize cases à remplir.                                  |
+| **Memory**             | Duel      | Retrouver les paires parmi 24 cartes retournées sur la télé.                                             |
+
+Les jeux de mots et de questions piochent dans de grosses listes. La télé retient ce qui est déjà sorti, d’une partie à l’autre, pour ne pas retomber sur les mêmes avant d’avoir presque tout vu.
 
 ## Fonctionnement
 
@@ -31,7 +40,7 @@ npm run test:e2e     # parties complètes simulées : une télé et deux télép
 npm run lint         # vérification du formatage
 ```
 
-Pour tester sur un seul ordinateur sans réseau, ouvrez la télé avec `?transport=local`, puis les téléphones dans d’autres onglets avec `?room=CODE&transport=local`.
+Pour tester sur un seul ordinateur sans réseau, ouvrez la télé avec `?transport=local`, puis les téléphones dans d’autres onglets avec `?room=CODE&transport=local`. En mode développement, le bouton « + joueur de test » en bas à droite de la télé ouvre directement une fenêtre de joueur (un clic par joueur).
 
 ## Publication
 
@@ -42,7 +51,7 @@ Chaque modification poussée sur `main` ou `beta` est vérifiée (types, tests u
 
 ## Crédits
 
-- Symboles des jeux : [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) de Microsoft, licence MIT, extraits avec `npm run icons`.
+- Quelques symboles de Touché-coulé : [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) de Microsoft, licence MIT, extraits avec `npm run icons`.
 - Icônes d’interface : [Lucide](https://lucide.dev), licence ISC.
-- Polices : Chewy et Nunito, licence SIL Open Font License.
+- Polices : Shrikhand et Bricolage Grotesque, licence SIL Open Font License.
 - Personnages et logo inspirés du tableau du salon.

@@ -1,13 +1,14 @@
 <script lang="ts">
   let { remaining, total }: { remaining: number; total: number } = $props();
-  const circumference = 2 * Math.PI * 42;
+  const circumference = 2 * Math.PI * 38;
   const progress = $derived(total > 0 ? Math.max(0, Math.min(1, remaining / total)) : 0);
 </script>
 
 <div class="timer" class:urgent={remaining <= 10 && remaining > 0} role="timer" aria-label={`${remaining} secondes`}>
   <svg viewBox="0 0 100 100" aria-hidden="true">
-    <circle cx="50" cy="50" r="42" class="track" />
-    <circle cx="50" cy="50" r="42" class="value" stroke-dasharray={circumference} stroke-dashoffset={circumference * (1 - progress)} />
+    <circle cx="50" cy="50" r="48" class="face" />
+    <circle cx="50" cy="50" r="38" class="track" />
+    <circle cx="50" cy="50" r="38" class="value" stroke-dasharray={circumference} stroke-dashoffset={circumference * (1 - progress)} />
   </svg>
   <span>{remaining}</span>
 </div>
@@ -29,15 +30,21 @@
 
   circle {
     fill: none;
-    stroke-width: 9;
+    stroke-width: 12;
   }
 
   .track {
-    stroke: var(--plum-3);
+    stroke: var(--cream);
+  }
+
+  .face {
+    fill: var(--cream);
+    stroke: var(--ink);
+    stroke-width: 4;
   }
 
   .value {
-    stroke: var(--yellow);
+    stroke: var(--pink);
     stroke-linecap: round;
     transition:
       stroke-dashoffset 0.9s linear,
@@ -45,12 +52,18 @@
   }
 
   span {
+    position: relative;
     font-family: var(--display);
     font-size: 2.4em;
+    color: var(--ink);
+  }
+
+  .timer {
+    filter: drop-shadow(0.12em 0.16em 0 var(--ink));
   }
 
   .urgent .value {
-    stroke: var(--red);
+    stroke: var(--cherry);
   }
 
   .urgent span {

@@ -1,4 +1,5 @@
 import type { Link } from '../net/link';
+import { DeckHistory, type HistoryStore } from '../games/deck';
 import { createRng } from '../random';
 import { sanitizeName } from '../text';
 import {
@@ -91,6 +92,7 @@ export interface HostRoomOptions {
   catalog: Readonly<Record<GameId, GameDefinition>>;
   onChange(): void;
   trophies?: TrophyStore;
+  history?: HistoryStore;
   seed?: () => number;
 }
 
@@ -107,8 +109,10 @@ export class HostRoom {
   private stageHandle: unknown = null;
   private heartbeatHandle: unknown = null;
   private disposed = false;
+  private readonly decks: DeckHistory;
 
   constructor(private readonly options: HostRoomOptions) {
+    this.decks = new DeckHistory(options.history);
     this.heartbeatHandle = options.timers.setTimeout(this.heartbeat, HEARTBEAT_MS);
   }
 
@@ -286,10 +290,11 @@ export class HostRoom {
     const session = new Session(game, this.options.timers);
     const seed = this.options.seed?.() ?? Math.floor(Math.random() * 4294967296);
     const isLive = () => this.stage.kind === 'playing' && this.stage.session === session && !session.finished;
+    const rng = createRng(seed);
 
     const ctx: GameContext = {
       starter: this.starter,
-      rng: createRng(seed),
+      rng,
       name: (slot) => this.name(slot),
       now: () => session.scheduler.now(),
       after: (ms, callback) => ({
@@ -309,6 +314,7 @@ export class HostRoom {
       finish: (result) => {
         if (isLive()) this.finish(session, result);
       },
+      draw: (deck, pool, key) => this.decks.draw(deck, pool, key, rng),
     };
 
     this.setStage({ kind: 'playing', game, session });

@@ -20,8 +20,8 @@
   <circle cx="320" cy="320" r={text ? 208 : 280} fill="none" stroke="#1d1612" stroke-width="9" />
   {#if text}
     <text
-      font-family="Chewy, cursive"
-      font-size="56"
+      font-family="Shrikhand, serif"
+      font-size="50"
       fill="#fbf6ec"
       stroke="#1d1612"
       stroke-width="10"

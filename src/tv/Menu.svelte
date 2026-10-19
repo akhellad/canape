@@ -1,21 +1,30 @@
 <script lang="ts">
   import { CATALOG, GAME_ORDER } from '../lib/games/catalog';
-  import Icon from '../lib/ui/Icon.svelte';
+  import GameArt from '../lib/ui/GameArt.svelte';
+
+  const TILTS = [-2.2, 1.6, -1.2, 2.4, -1.8, 1.2, -2.6];
 </script>
 
 <section class="menu">
   <div class="title">
-    <h1>À quoi on joue ?</h1>
+    <h1 class="pop">À quoi on joue ?</h1>
     <p>Choisissez un jeu sur votre téléphone</p>
   </div>
   <div class="grid">
     {#each GAME_ORDER as id, index (id)}
       {@const game = CATALOG[id]}
-      <article class="tile paper" style:--accent={game.accent} style:animation-delay={`${index * 70}ms`}>
-        <div class="badge"><Icon name={game.icon} size="2.6em" /></div>
-        <h2>{game.title}</h2>
-        <p>{game.tagline}</p>
-        <span class="tag" class:coop={game.coop}>{game.coop ? 'En équipe' : 'En duel'}</span>
+      <article
+        class="tile paper"
+        style:--accent={game.accent}
+        style:--tilt={`${TILTS[index % TILTS.length]}deg`}
+        style:--delay={`${index * 90}ms`}
+      >
+        <div class="art"><GameArt game={id} size="3.6em" animated /></div>
+        <div class="text">
+          <h2>{game.title}</h2>
+          <p>{game.tagline}</p>
+        </div>
+        <span class="sticker" class:coop={game.coop}>{game.coop ? 'En équipe' : 'En duel'}</span>
       </article>
     {/each}
   </div>
@@ -24,79 +33,93 @@
 <style>
   .menu {
     width: 100%;
-    max-width: 80em;
+    max-width: 92em;
     display: flex;
     flex-direction: column;
-    gap: 2.4em;
+    gap: 2em;
   }
 
   .title {
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 0.4em;
+    align-items: center;
+    gap: 0.5em;
   }
 
   h1 {
-    font-size: 3.4em;
+    font-size: 3.6em;
+    transform: rotate(-1.5deg);
   }
 
   .title p {
+    font-weight: 700;
+    font-size: 1.3em;
     color: var(--muted);
-    font-size: 1.2em;
   }
 
   .grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 1.6em;
+    gap: 1.6em 1.2em;
+    max-width: 78em;
+    margin: 0 auto;
   }
 
   .tile {
-    width: 23em;
+    position: relative;
+    width: 10.9em;
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
-    padding: 1.3em 1.4em 1.4em;
-    position: relative;
-    animation: rise 0.5s backwards ease-out;
+    overflow: visible;
+    padding: 0;
+    transform: rotate(var(--tilt));
+    animation:
+      drop-in 0.7s var(--snap) backwards,
+      float 6s ease-in-out infinite;
+    animation-delay: var(--delay), calc(var(--delay) * 3);
   }
 
-  .badge {
-    width: 4em;
-    height: 4em;
+  .art {
     display: grid;
     place-items: center;
-    border-radius: 1em;
+    height: 4.6em;
     background: var(--accent);
-    border: 0.15em solid var(--ink);
-    margin-bottom: 0.3em;
+    border-bottom: var(--line) solid var(--ink);
+    border-radius: calc(var(--radius) - 0.16em) calc(var(--radius) - 0.16em) 0 0;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0.14em, transparent 0.16em);
+    background-size: 0.8em 0.8em;
+  }
+
+  .text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35em;
+    padding: 0.6em 0.75em 0.8em;
   }
 
   h2 {
-    font-size: 1.9em;
+    font-size: 1.2em;
   }
 
-  .tile p {
-    color: #4a3f38;
-    font-size: 1.02em;
-    line-height: 1.3;
+  .text p {
+    color: var(--ink-2);
+    font-weight: 600;
+    font-size: 0.78em;
+    line-height: 1.25;
   }
 
-  .tag {
+  .sticker {
     position: absolute;
-    top: 1.2em;
-    right: 1.2em;
-    padding: 0.2em 0.7em;
-    border-radius: 999px;
-    background: var(--paper-2);
-    border: 0.1em solid var(--ink);
-    font-size: 0.85em;
-    font-weight: 800;
+    top: -0.8em;
+    right: -0.7em;
+    font-size: 0.7em;
+    background: var(--cream);
+    transform: rotate(7deg);
   }
 
-  .tag.coop {
-    background: var(--yellow);
+  .sticker.coop {
+    background: var(--butter);
   }
 </style>

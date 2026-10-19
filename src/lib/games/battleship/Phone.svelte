@@ -142,7 +142,13 @@
   }
 
   .status.mine {
-    color: var(--pc);
+    align-self: flex-start;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.8rem;
+    border: 2px solid var(--ink);
+    background: var(--pc);
+    color: var(--pc-ink);
+    box-shadow: 3px 4px 0 var(--ink);
   }
 
   .actions {
@@ -171,15 +177,16 @@
     font-weight: 900;
     font-size: 1.05rem;
     color: var(--ink);
-    background: #d7ecff;
+    background: var(--cream);
+    box-shadow: 3px 4px 0 var(--ink);
   }
 
   .last.hit {
-    background: #ffb347;
+    background: var(--tangerine);
   }
 
   .last.sunk {
-    background: var(--red);
+    background: var(--cherry);
     color: var(--cream);
   }
 
@@ -194,6 +201,6 @@
 
   .mini span {
     font-size: 0.95rem;
-    color: var(--muted);
+    color: var(--ink-2);
   }
 </style>

@@ -1,11 +1,22 @@
-import type { IconName } from '../icons/icons';
 import type { Rng } from '../random';
 
 export type Slot = 0 | 1;
 export const SLOTS: readonly Slot[] = [0, 1];
 export const other = (slot: Slot): Slot => (slot === 0 ? 1 : 0);
 
-export type GameId = 'connect4' | 'battleship' | 'kifkif' | 'agents' | 'sketch';
+export type GameId =
+  | 'sketch'
+  | 'quiz'
+  | 'couple'
+  | 'taboo'
+  | 'petitbac'
+  | 'guesswho'
+  | 'mastermind'
+  | 'connect4'
+  | 'reversi'
+  | 'battleship'
+  | 'yams'
+  | 'memory';
 
 export type FxKind =
   | 'join'
@@ -22,6 +33,9 @@ export type FxKind =
   | 'wrong'
   | 'reveal'
   | 'tick'
+  | 'flip'
+  | 'roll'
+  | 'lock'
   | 'win'
   | 'lose';
 
@@ -53,6 +67,8 @@ export interface GameContext {
   update(): void;
   fx(kind: FxKind, targets?: Slot[] | 'all'): void;
   finish(result: GameResult): void;
+  /** Draws from a pool, avoiding items already seen in previous games on this TV. */
+  draw<T>(deck: string, pool: readonly T[], key: (item: T) => string): T;
 }
 
 export interface GameInstance {
@@ -65,7 +81,6 @@ export interface GameDefinition {
   id: GameId;
   title: string;
   tagline: string;
-  icon: IconName;
   accent: string;
   coop: boolean;
   rules: string[];

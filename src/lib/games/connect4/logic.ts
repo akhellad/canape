@@ -141,8 +141,7 @@ export const connect4: GameDefinition = {
   id: 'connect4',
   title: 'Puissance 4',
   tagline: 'Alignez quatre jetons avant l’autre.',
-  icon: 'bullseye',
-  accent: '#5b8fe8',
+  accent: '#e8213f',
   coop: false,
   rules: [
     'Chacun son tour, faites tomber un jeton dans une colonne.',

@@ -1,5 +1,5 @@
-import '@fontsource/chewy';
-import '@fontsource-variable/nunito';
+import '@fontsource/shrikhand';
+import '@fontsource-variable/bricolage-grotesque/standard.css';
 import './app.css';
 import { mount } from 'svelte';
 import App from './App.svelte';

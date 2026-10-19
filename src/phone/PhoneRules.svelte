@@ -2,7 +2,7 @@
   import { CATALOG } from '../lib/games/catalog';
   import { other, type GameId, type Slot } from '../lib/games/types';
   import type { Seats } from '../lib/room/protocol';
-  import Icon from '../lib/ui/Icon.svelte';
+  import GameArt from '../lib/ui/GameArt.svelte';
 
   let {
     game,
@@ -17,10 +17,10 @@
   const partner = $derived(seats[other(slot)]?.name ?? 'l’autre');
 </script>
 
-<div class="rules">
+<div class="rules" style:--accent={definition.accent}>
   <header style:--accent={definition.accent}>
-    <span class="badge"><Icon name={definition.icon} size="2.2rem" /></span>
-    <h1>{definition.title}</h1>
+    <span class="badge"><GameArt {game} size="2.8rem" animated /></span>
+    <h1 class="pop">{definition.title}</h1>
   </header>
   <ol>
     {#each definition.rules as rule, index (index)}
@@ -52,8 +52,11 @@
   }
 
   .badge {
-    width: 3.4rem;
-    height: 3.4rem;
+    width: 4rem;
+    height: 4rem;
+    flex-shrink: 0;
+    box-shadow: 3px 4px 0 var(--ink);
+    transform: rotate(-4deg);
     display: grid;
     place-items: center;
     border-radius: 0.9rem;
@@ -78,9 +81,12 @@
     display: flex;
     gap: 0.7rem;
     line-height: 1.4;
-    background: var(--plum-2);
+    background: var(--cream);
+    border: 2px solid var(--ink);
+    box-shadow: 3px 4px 0 var(--ink);
     border-radius: 0.9rem;
     padding: 0.7rem 0.8rem;
+    font-weight: 600;
   }
 
   li span {
@@ -90,8 +96,11 @@
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background: var(--yellow);
-    color: var(--ink);
+    background: var(--accent);
+    border: 2px solid var(--ink);
+    color: var(--cream);
+    -webkit-text-stroke: 0.05em var(--ink);
+    paint-order: stroke fill;
     font-family: var(--display);
   }
 

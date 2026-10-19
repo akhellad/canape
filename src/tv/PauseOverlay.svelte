@@ -32,7 +32,7 @@
     inset: 0;
     display: grid;
     place-items: center;
-    background: rgba(20, 14, 26, 0.65);
+    background: rgba(42, 12, 29, 0.6);
     z-index: 15;
   }
 
@@ -44,6 +44,7 @@
     gap: 0.8em;
     text-align: center;
     max-width: 36em;
+    transform: rotate(-1deg);
   }
 
   h2 {
@@ -55,7 +56,7 @@
     height: 3em;
     border-radius: 50%;
     border: 0.35em solid var(--paper-2);
-    border-top-color: var(--orange);
+    border-top-color: var(--pink);
     animation: spin 0.9s linear infinite;
   }
 
@@ -63,11 +64,5 @@
     font-family: var(--display);
     font-size: 5em;
     animation: pop-in 0.4s ease-out;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 </style>

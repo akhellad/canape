@@ -13,7 +13,7 @@
   import { readStorage, STORAGE_KEYS, writeStorage } from '../lib/storage';
   import { sanitizeName } from '../lib/text';
   import Blob from '../lib/ui/Blob.svelte';
-  import Icon from '../lib/ui/Icon.svelte';
+  import GameArt from '../lib/ui/GameArt.svelte';
   import GameSheet from './GameSheet.svelte';
   import Join from './Join.svelte';
   import PhoneMenu from './PhoneMenu.svelte';
@@ -144,7 +144,7 @@
         {#if screen.kind === 'lobby'}
           <div class="center">
             <Blob slot={screen.slot} size="5rem" bounce />
-            <h1>Salut {screen.seats[screen.slot]?.name ?? name} !</h1>
+            <h1 class="pop">Salut {screen.seats[screen.slot]?.name ?? name} !</h1>
             <p>
               On attend {screen.seats[other(screen.slot)]?.name ?? 'ton ou ta partenaire'}. Scannez le QR code de la télé avec l’autre
               téléphone.
@@ -163,8 +163,8 @@
           />
         {:else if screen.kind === 'countdown'}
           <div class="center">
-            <div class="look"><Icon name={CATALOG[screen.game].icon} size="5rem" /></div>
-            <h1>Regarde la télé !</h1>
+            <div class="look" style:--accent={CATALOG[screen.game].accent}><GameArt game={screen.game} size="6rem" animated /></div>
+            <h1 class="pop">Regarde la télé !</h1>
             <p>{CATALOG[screen.game].title} commence…</p>
           </div>
         {:else if screen.kind === 'playing'}
@@ -212,7 +212,8 @@
   .banner {
     padding: 0.5rem 0.8rem;
     border-radius: 0.8rem;
-    background: var(--bad);
+    border: 2px solid var(--ink);
+    background: var(--cherry);
     color: var(--cream);
     font-weight: 800;
     text-align: center;
@@ -233,12 +234,18 @@
   }
 
   .center p {
-    color: var(--muted);
+    color: var(--ink-2);
+    font-weight: 600;
     line-height: 1.45;
     max-width: 22rem;
   }
 
   .look {
+    padding: 1rem;
+    border-radius: 1.4rem;
+    border: 3px solid var(--ink);
+    background: var(--accent, var(--butter));
+    box-shadow: var(--shadow);
     animation: wiggle 0.8s ease-in-out infinite;
   }
 

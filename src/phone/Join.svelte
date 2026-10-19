@@ -17,10 +17,10 @@
 
 <div class="join">
   <div class="logo"><Pastille size="min(62vw, 15rem)" animated /></div>
-  <Wordmark size="1.9rem" lines={2} />
+  <Wordmark size="2.2rem" lines={2} animated />
   <form onsubmit={submit}>
     <label for="name">Ton prénom</label>
-    <input id="name" bind:value maxlength="14" autocomplete="given-name" autocapitalize="words" enterkeyhint="go" required />
+    <input id="name" class="field" bind:value maxlength="14" autocomplete="given-name" autocapitalize="words" enterkeyhint="go" required />
     <button class="btn primary block" type="submit" disabled={!value.trim()}>Rejoindre la salle {code}</button>
   </form>
 </div>
@@ -39,7 +39,8 @@
   }
 
   .logo {
-    animation: bob 4s ease-in-out infinite;
+    animation: float 5s ease-in-out infinite;
+    filter: drop-shadow(0.25rem 0.3rem 0 var(--ink));
   }
 
   form {
@@ -53,21 +54,6 @@
 
   label {
     font-weight: 800;
-    color: var(--muted);
-  }
-
-  input {
-    padding: 0.9rem 1rem;
-    border-radius: 1rem;
-    border: 3px solid var(--ink);
-    background: var(--cream);
     color: var(--ink);
-    font-size: 1.3rem;
-    font-weight: 800;
-    outline: none;
-  }
-
-  input:focus {
-    box-shadow: 0 0 0 3px var(--yellow);
   }
 </style>

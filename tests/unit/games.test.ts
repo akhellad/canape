@@ -1,7 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { buildDeck, layoutCard } from '../../src/lib/games/kifkif/deck';
-import { kifkif, PENALTY_MS, PILE_SIZE, type KifKifPhone, type KifKifTv } from '../../src/lib/games/kifkif/logic';
-import { SYMBOLS } from '../../src/lib/games/kifkif/symbols';
 import { connect4, type Connect4Phone, type Connect4Tv } from '../../src/lib/games/connect4/logic';
 import {
   battleship,
@@ -13,98 +10,10 @@ import {
   type BattleshipPhone,
   type BattleshipTv,
 } from '../../src/lib/games/battleship/logic';
-import { agents, generateKeys, TOKENS, type AgentsPhone, type AgentsTv, type KeyCell } from '../../src/lib/games/agents/logic';
 import { sketch, ROUNDS, type SketchPhone, type SketchTv } from '../../src/lib/games/sketch/logic';
 import { createRng } from '../../src/lib/random';
 import { createTestContext } from './helpers';
 import type { Slot } from '../../src/lib/games/types';
-
-describe('Kif-Kif deck', () => {
-  const deck = buildDeck();
-
-  it('builds 57 cards of 8 distinct symbols', () => {
-    expect(deck).toHaveLength(57);
-    for (const card of deck) {
-      expect(new Set(card).size).toBe(8);
-      for (const symbol of card) expect(symbol).toBeGreaterThanOrEqual(0);
-    }
-    expect(new Set(deck.flat()).size).toBe(SYMBOLS.length);
-  });
-
-  it('shares exactly one symbol between any two cards', () => {
-    for (let i = 0; i < deck.length; i++) {
-      for (let j = i + 1; j < deck.length; j++) {
-        const shared = deck[i].filter((symbol) => deck[j].includes(symbol));
-        expect(shared).toHaveLength(1);
-      }
-    }
-  });
-
-  it('lays symbols out inside the card without overlapping', () => {
-    const rng = createRng(7);
-    for (const card of deck) {
-      const items = layoutCard(card, rng);
-      expect(items.map((item) => item.symbol).sort()).toEqual([...card].sort());
-      for (const item of items) expect(Math.hypot(item.x, item.y) + item.size / 2).toBeLessThan(1);
-      for (let a = 0; a < items.length; a++) {
-        for (let b = a + 1; b < items.length; b++) {
-          const distance = Math.hypot(items[a].x - items[b].x, items[a].y - items[b].y);
-          expect(distance).toBeGreaterThan((items[a].size + items[b].size) / 2);
-        }
-      }
-    }
-  });
-});
-
-describe('Kif-Kif game', () => {
-  const deck = buildDeck();
-
-  function setup() {
-    const test = createTestContext({ seed: 3 });
-    const game = kifkif.create(test.ctx);
-    const tv = () => game.tv() as KifKifTv;
-    const phone = (slot: Slot) => game.phone(slot) as KifKifPhone;
-    const common = (slot: Slot) => {
-      const card = phone(slot).card;
-      if (!card) throw new Error('no card');
-      return deck[card.id].find((symbol) => deck[tv().center.id].includes(symbol)) as number;
-    };
-    return { test, game, tv, phone, common };
-  }
-
-  it('moves a matched card to the center', () => {
-    const { game, tv, phone, common, test } = setup();
-    const card = phone(0).card?.id;
-    game.act(0, { type: 'tap', center: tv().center.id, symbol: common(0) });
-    expect(tv().center.id).toBe(card);
-    expect(tv().remaining).toEqual([PILE_SIZE - 1, PILE_SIZE]);
-    expect(test.fx.some((event) => event.kind === 'match')).toBe(true);
-  });
-
-  it('locks a player after a wrong symbol and ignores stale taps', () => {
-    const { game, tv, phone, common, test } = setup();
-    const card = phone(1).card;
-    const wrong = card?.items.find((item) => item.symbol !== common(1))?.symbol as number;
-    game.act(1, { type: 'tap', center: tv().center.id, symbol: wrong });
-    expect(phone(1).lockMs).toBe(PENALTY_MS);
-    game.act(1, { type: 'tap', center: tv().center.id, symbol: common(1) });
-    expect(tv().remaining[1]).toBe(PILE_SIZE);
-    test.clock.advance(PENALTY_MS);
-    const before = tv().center.id;
-    game.act(1, { type: 'tap', center: before + 1000, symbol: common(1) });
-    expect(tv().center.id).toBe(before);
-    game.act(1, { type: 'tap', center: before, symbol: common(1) });
-    expect(tv().remaining[1]).toBe(PILE_SIZE - 1);
-  });
-
-  it('declares the first player to empty their pile the winner', () => {
-    const { game, tv, common, test } = setup();
-    for (let i = 0; i < PILE_SIZE; i++) game.act(0, { type: 'tap', center: tv().center.id, symbol: common(0) });
-    expect(tv().phase).toBe('over');
-    test.clock.advance(5000);
-    expect(test.results[0].winner).toBe(0);
-  });
-});
 
 describe('Puissance 4', () => {
   function setup(starter: Slot = 0) {
@@ -236,117 +145,6 @@ describe('Touché-coulé', () => {
   });
 });
 
-describe('Agents doubles', () => {
-  it('generates crossed keys with the official distribution', () => {
-    const [a, b] = generateKeys(createRng(9));
-    const count = (key: KeyCell[], cell: KeyCell) => key.filter((value) => value === cell).length;
-    for (const key of [a, b]) {
-      expect(count(key, 'agent')).toBe(9);
-      expect(count(key, 'assassin')).toBe(3);
-      expect(count(key, 'neutral')).toBe(13);
-    }
-    expect(a.filter((cell, index) => cell === 'agent' || b[index] === 'agent')).toHaveLength(15);
-    expect(a.filter((cell, index) => cell === 'agent' && b[index] === 'agent')).toHaveLength(3);
-  });
-
-  function setup() {
-    const test = createTestContext({ seed: 21, starter: 0 });
-    const game = agents.create(test.ctx);
-    const tv = () => game.tv() as AgentsTv;
-    const phone = (slot: Slot) => game.phone(slot) as AgentsPhone;
-    const guess = (slot: Slot, tile: number) => {
-      game.act(slot, { type: 'select', tile });
-      game.act(slot, { type: 'confirm', tile });
-      test.clock.advance(1000);
-    };
-    return { test, game, tv, phone, guess };
-  }
-
-  it('validates clues', () => {
-    const { game, phone, tv } = setup();
-    game.act(0, { type: 'clue', word: 'deux mots', count: 2 });
-    expect(phone(0).error).toMatch(/seul mot/);
-    game.act(0, { type: 'clue', word: tv().tiles[4].word.toLowerCase(), count: 2 });
-    expect(phone(0).error).toMatch(/grille/);
-    game.act(1, { type: 'clue', word: 'mer', count: 2 });
-    expect(tv().phase).toBe('clue');
-    game.act(0, { type: 'clue', word: 'mer', count: 2 });
-    expect(tv().phase).toBe('guess');
-    expect(tv().clue).toEqual({ word: 'MER', count: 2 });
-    expect(phone(1).role).toBe('guessing');
-    expect(phone(0).role).toBe('watching');
-  });
-
-  it('continues on agents, ends the turn on a bystander and loses on an assassin', () => {
-    const { game, phone, tv, guess } = setup();
-    const key = phone(0).myKey;
-    game.act(0, { type: 'clue', word: 'mer', count: 3 });
-    const agent = key.indexOf('agent');
-    guess(1, agent);
-    expect(tv().tiles[agent].found).toBe(true);
-    expect(tv().phase).toBe('guess');
-    expect(phone(1).canStop).toBe(true);
-    const neutral = key.indexOf('neutral');
-    guess(1, neutral);
-    expect(tv().tiles[neutral].bystander[0]).toBe(true);
-    expect(tv().tokens).toBe(TOKENS - 1);
-    expect(tv().phase).toBe('clue');
-    expect(tv().giver).toBe(1);
-    const otherKey = phone(1).myKey;
-    game.act(1, { type: 'clue', word: 'chat', count: 1 });
-    const assassin = otherKey.indexOf('assassin');
-    guess(0, assassin);
-    expect(tv().phase).toBe('over');
-    expect(tv().won).toBe(false);
-    expect(tv().keys).not.toBeNull();
-  });
-
-  it('wins once all fifteen agents are found', () => {
-    const { game, phone, tv, guess, test } = setup();
-    const keys: [KeyCell[], KeyCell[]] = [phone(0).myKey, phone(1).myKey];
-    let guard = 0;
-    while (tv().phase !== 'over' && guard++ < 40) {
-      const giver = tv().giver;
-      const guesser: Slot = giver === 0 ? 1 : 0;
-      game.act(giver, { type: 'clue', word: `indice`, count: 9 });
-      const targets = keys[giver]
-        .map((cell, index) => (cell === 'agent' && !tv().tiles[index].found ? index : -1))
-        .filter((index) => index >= 0);
-      for (const tile of targets) {
-        if (tv().phase !== 'guess' || tv().giver !== giver) break;
-        guess(guesser, tile);
-      }
-      if (tv().phase === 'guess') game.act(guesser, { type: 'stop' });
-    }
-    expect(tv().won).toBe(true);
-    expect(tv().found).toBe(15);
-    test.clock.advance(4000);
-    expect(test.results[0].coop?.won).toBe(true);
-  });
-
-  it('enters sudden death when time tokens run out', () => {
-    const { game, phone, tv, guess } = setup();
-    for (let turn = 0; turn < TOKENS; turn++) {
-      const giver = tv().giver;
-      const guesser: Slot = giver === 0 ? 1 : 0;
-      game.act(giver, { type: 'clue', word: 'rien', count: 1 });
-      const key = phone(giver).myKey;
-      const neutral = key.findIndex((cell, index) => cell === 'neutral' && !tv().tiles[index].bystander[giver] && !tv().tiles[index].found);
-      guess(guesser, neutral);
-    }
-    expect(tv().phase).toBe('sudden');
-    expect(phone(0).role).toBe('sudden');
-    const partnerKey = phone(1).myKey;
-    const agent = partnerKey.findIndex((cell, index) => cell === 'agent' && !tv().tiles[index].found);
-    guess(0, agent);
-    expect(tv().tiles[agent].found).toBe(true);
-    const neutral = partnerKey.findIndex((cell, index) => cell === 'neutral' && !tv().tiles[index].bystander[1]);
-    guess(0, neutral);
-    expect(tv().phase).toBe('over');
-    expect(tv().won).toBe(false);
-  });
-});
-
 describe('Gribouille', () => {
   function setup() {
     const test = createTestContext({ seed: 8, starter: 0 });
@@ -418,23 +216,5 @@ describe('Gribouille', () => {
     expect(test.results).toHaveLength(1);
     expect(test.results[0].coop?.won).toBe(false);
     expect(phone(0).phase).toBe('reveal');
-  });
-
-  it('enforces single-stroke and straight-line modes', () => {
-    const { game, tv, test } = setup();
-    let guard = 0;
-    while (tv().mode !== 'oneStroke' && guard++ < 50) {
-      game.act(tv().drawer, { type: 'choose', index: 0 });
-      game.act(tv().drawer, { type: 'skip' });
-      test.clock.advance(5000);
-      if (test.results.length) break;
-    }
-    if (tv().mode === 'oneStroke') {
-      const current = tv().drawer;
-      game.act(current, { type: 'choose', index: 0 });
-      game.act(current, { type: 'stroke', id: 1, points: [1, 1, 2, 2], end: true });
-      game.act(current, { type: 'stroke', id: 2, points: [5, 5, 6, 6], end: true });
-      expect(tv().strokes).toHaveLength(1);
-    }
   });
 });

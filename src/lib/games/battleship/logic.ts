@@ -309,8 +309,7 @@ export const battleship: GameDefinition = {
   id: 'battleship',
   title: 'Touché-coulé',
   tagline: 'Cachez votre flotte, coulez celle de l’autre.',
-  icon: 'ship',
-  accent: '#3f7fc9',
+  accent: '#3b46ff',
   coop: false,
   rules: [
     'Placez vos quatre navires en secret sur votre téléphone. Touche un navire pour le choisir, une case pour le déplacer, et re-touche-le pour le tourner.',

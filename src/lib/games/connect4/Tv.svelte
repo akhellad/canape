@@ -12,11 +12,11 @@
 <section class="c4">
   <div class="banner">
     {#if view.phase === 'won' && view.winner !== null}
-      <h2 class="win p{view.winner}">{name(view.winner)} aligne quatre jetons !</h2>
+      <h2 class="win pop"><span class="name-tag p{view.winner}">{name(view.winner)}</span> aligne quatre jetons !</h2>
     {:else if view.phase === 'draw'}
-      <h2>Grille pleine : match nul !</h2>
+      <h2 class="pop">Grille pleine : match nul !</h2>
     {:else}
-      <h2>Au tour de <span class="p{view.turn} who">{name(view.turn)}</span></h2>
+      {#key view.turn}<h2 class="pop turn">Au tour de <span class="name-tag p{view.turn}">{name(view.turn)}</span></h2>{/key}
     {/if}
   </div>
   <div class="row">
@@ -50,17 +50,17 @@
   }
 
   .banner h2 {
-    font-size: 2.4em;
+    font-size: 3em;
     text-align: center;
   }
 
-  .who {
-    color: var(--pc);
+  .turn {
+    animation: pop-in 0.35s var(--spring);
   }
 
   .win {
-    color: var(--pc);
-    animation: pop-in 0.5s ease-out;
+    --tilt: -2deg;
+    animation: stamp 0.6s var(--snap) both;
   }
 
   .row {
@@ -87,5 +87,6 @@
     border-radius: 50%;
     background: var(--pc);
     border: 0.14em solid var(--ink);
+    box-shadow: 0.1em 0.14em 0 var(--ink);
   }
 </style>

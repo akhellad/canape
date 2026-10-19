@@ -62,13 +62,13 @@ test('garde des textes lisibles (contraste) sur les écrans principaux', async (
   };
   await check('tv menu', table.tv);
   await check('phone menu', table.phones[0]);
-  await tapSettled(table.phones[0], table.phones[0].locator('.game', { hasText: 'Agents doubles' }));
+  await tapSettled(table.phones[0], table.phones[0].locator('.game', { hasText: 'Quiz' }));
   await check('tv rules', table.tv);
   await check('phone rules', table.phones[0]);
   for (const phone of table.phones) await tapSettled(phone, phone.getByRole('button', { name: 'Je suis prêt !' }));
-  await expect(table.tv.locator('.agents')).toBeVisible({ timeout: 10_000 });
-  await check('tv agents', table.tv);
-  for (const [index, phone] of table.phones.entries()) await check(`phone agents ${index}`, phone);
+  await expect(table.tv.locator('.quiz')).toBeVisible({ timeout: 10_000 });
+  await check('tv quiz', table.tv);
+  for (const [index, phone] of table.phones.entries()) await check(`phone quiz ${index}`, phone);
   expect(failures, failures.join('\n')).toEqual([]);
   await table.context.close();
 });
@@ -101,8 +101,8 @@ test('fonctionne avec une vraie connexion PeerJS entre appareils séparés', asy
     await phones[1].locator('button[type="submit"]').tap();
     await expect(phones[1].locator('.menu h1')).toBeVisible({ timeout: 30_000 });
     await expect(tv.locator('.chip .away')).toHaveCount(0);
-    await tapSettled(phones[0], phones[0].locator('.game', { hasText: 'Kif-Kif' }));
-    await expect(tv.locator('.rules h1')).toHaveText('Kif-Kif');
+    await tapSettled(phones[0], phones[0].locator('.game', { hasText: 'Quiz' }));
+    await expect(tv.locator('.rules h1')).toHaveText('Quiz');
     await tvContext.close();
     for (const phone of phones) await phone.context().close();
   } finally {

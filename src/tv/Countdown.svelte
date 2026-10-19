@@ -2,12 +2,13 @@
   import { onMount } from 'svelte';
   import { CATALOG } from '../lib/games/catalog';
   import type { GameId } from '../lib/games/types';
-  import Icon from '../lib/ui/Icon.svelte';
+  import GameArt from '../lib/ui/GameArt.svelte';
 
   let { game, until }: { game: GameId; until: number } = $props();
   let now = $state(Date.now());
   const remaining = $derived(Math.max(1, Math.ceil((until - now) / 1000)));
   const definition = $derived(CATALOG[game]);
+  const COLORS = ['var(--butter)', 'var(--mint)', 'var(--cream)'];
 
   onMount(() => {
     const timer = setInterval(() => (now = Date.now()), 100);
@@ -17,13 +18,16 @@
 
 <section class="countdown" style:--accent={definition.accent}>
   <div class="game">
-    <Icon name={definition.icon} size="2.2em" />
-    <span>{definition.title}</span>
+    <GameArt {game} size="2.6em" animated />
+    <span class="pop">{definition.title}</span>
   </div>
-  {#key remaining}
-    <div class="number">{remaining}</div>
-  {/key}
-  <p>Prenez vos téléphones !</p>
+  <div class="stage">
+    {#key remaining}
+      <span class="ring" aria-hidden="true"></span>
+      <div class="number" style:--fill={COLORS[remaining % COLORS.length]}>{remaining}</div>
+    {/key}
+  </div>
+  <p class="sticker">Prenez vos téléphones !</p>
 </section>
 
 <style>
@@ -31,7 +35,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1em;
+    gap: 1.4em;
   }
 
   .game {
@@ -39,43 +43,80 @@
     align-items: center;
     gap: 0.5em;
     font-family: var(--display);
-    font-size: 2.2em;
+    font-size: 2.6em;
+  }
+
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 22em;
+    height: 22em;
   }
 
   .number {
-    width: 2.2em;
-    height: 2.2em;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--ink);
-    border: 0.06em solid var(--ink);
-    box-shadow: 0 0.06em 0 var(--ink);
+    grid-area: 1 / 1;
     font-family: var(--display);
-    font-size: 8em;
-    animation: count 0.9s ease-out;
+    font-size: 17em;
+    line-height: 1;
+    color: var(--fill);
+    -webkit-text-stroke: 0.04em var(--ink);
+    paint-order: stroke fill;
+    text-shadow:
+      0.03em 0.03em 0 var(--ink),
+      0.06em 0.06em 0 var(--ink);
+    animation: slam 0.95s var(--snap) both;
   }
 
-  p {
+  .ring {
+    grid-area: 1 / 1;
+    width: 14em;
+    height: 14em;
+    border-radius: 50%;
+    border: 0.6em solid var(--cream);
+    animation: shock 0.9s ease-out both;
+  }
+
+  .sticker {
     font-size: 1.4em;
-    color: var(--muted);
+    transform: rotate(-2deg);
+    animation: wiggle 1.2s ease-in-out infinite;
   }
 
-  @keyframes count {
+  @keyframes slam {
     0% {
-      transform: scale(0.3) rotate(-20deg);
+      transform: scale(3) rotate(-20deg);
       opacity: 0;
     }
-    35% {
-      transform: scale(1.12) rotate(4deg);
+    30% {
+      transform: scale(0.9) rotate(3deg);
       opacity: 1;
     }
-    60% {
-      transform: scale(0.96);
+    50% {
+      transform: scale(1.05) rotate(-1deg);
+    }
+    85% {
+      transform: scale(1);
+      opacity: 1;
     }
     100% {
-      transform: scale(1);
+      transform: scale(0.9);
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes shock {
+    0%,
+    25% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+    30% {
+      opacity: 0.9;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
     }
   }
 </style>

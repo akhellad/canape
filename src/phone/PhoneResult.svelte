@@ -42,12 +42,23 @@
     font-size: 2.6rem;
   }
 
+  h1 {
+    color: var(--cream);
+    -webkit-text-stroke: 0.035em var(--ink);
+    paint-order: stroke fill;
+    text-shadow:
+      0.03em 0.03em 0 var(--ink),
+      0.06em 0.06em 0 var(--ink);
+    --tilt: -3deg;
+    animation: stamp 0.6s 0.15s var(--snap) both;
+  }
+
   .good {
-    color: var(--yellow);
+    color: var(--butter);
   }
 
   .bad {
-    color: var(--peach);
+    color: var(--blush);
   }
 
   .title {
@@ -56,7 +67,8 @@
   }
 
   .detail {
-    color: var(--muted);
+    color: var(--ink-2);
+    font-weight: 600;
   }
 
   .actions {

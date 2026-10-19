@@ -77,11 +77,19 @@
   }
 
   .status.mine {
-    color: var(--pc);
+    align-self: flex-start;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.8rem;
+    border: 2px solid var(--ink);
+    background: var(--pc);
+    color: var(--pc-ink);
+    box-shadow: 3px 4px 0 var(--ink);
+    transform: rotate(-1deg);
   }
 
   .board {
     font-size: 0.8rem;
+    padding: 0 0.3rem;
   }
 
   .drop {

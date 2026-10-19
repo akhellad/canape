@@ -119,9 +119,9 @@
     aspect-ratio: 1;
     border-radius: 0.8em;
     border: 0.2em solid var(--ink);
-    box-shadow: 0 0.3em 0 var(--ink);
+    box-shadow: 0.25em 0.3em 0 var(--ink);
     overflow: hidden;
-    background: #1e5d9c;
+    background: #2a35c9;
   }
 
   .water {
@@ -130,7 +130,7 @@
     background-image:
       linear-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px),
-      radial-gradient(circle at 30% 20%, #3f8ed6 0%, #2066ad 45%, #174f8a 100%);
+      radial-gradient(circle at 30% 20%, #5663ff 0%, #2f3bd9 45%, #1f27a3 100%);
     background-size:
       12.5% 12.5%,
       12.5% 12.5%,
@@ -155,7 +155,7 @@
     width: 100%;
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(180deg, #c9d2de, #8f9cae);
+    background: linear-gradient(180deg, #fff3e6, #ffc4dc);
     border: 0.14em solid var(--ink);
     display: flex;
     align-items: center;
@@ -166,22 +166,22 @@
   .vertical .hull {
     flex-direction: column;
     padding: 6% 0;
-    background: linear-gradient(90deg, #c9d2de, #8f9cae);
+    background: linear-gradient(90deg, #fff3e6, #ffc4dc);
   }
 
   .porthole {
     width: 0.45em;
     height: 0.45em;
     border-radius: 50%;
-    background: #2b3a4f;
+    background: #2a0c1d;
   }
 
   .sunk .hull {
-    background: repeating-linear-gradient(135deg, #5a2a2a 0 0.5em, #7a3b3b 0.5em 1em);
+    background: repeating-linear-gradient(135deg, #8c1650 0 0.5em, #e8213f 0.5em 1em);
   }
 
   .selected .hull {
-    background: linear-gradient(180deg, #ffe58a, #f4c430);
+    background: linear-gradient(180deg, #ffe58a, #ffd23d);
     box-shadow: 0 0 0 0.18em var(--cream);
     animation: bob 0.9s ease-in-out infinite;
   }
@@ -208,7 +208,7 @@
     height: 28%;
     border-radius: 50%;
     background: #e8f3ff;
-    border: 0.1em solid #0d3560;
+    border: 0.1em solid #1f27a3;
     animation: pop-in 0.35s ease-out;
   }
 
@@ -231,7 +231,7 @@
   }
 
   .reticle {
-    border: 0.18em dashed var(--yellow);
+    border: 0.18em dashed var(--butter);
     border-radius: 50%;
     animation: spin 3s linear infinite;
     z-index: 2;
@@ -239,7 +239,7 @@
 
   .reticle.locked {
     border-style: solid;
-    border-color: var(--red);
+    border-color: var(--cherry);
     animation: none;
   }
 

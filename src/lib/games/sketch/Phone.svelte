@@ -3,9 +3,9 @@
   import Undo2 from '@lucide/svelte/icons/undo-2';
   import { fly } from 'svelte/transition';
   import type { Seats } from '../../room/protocol';
-  import Icon from '../../ui/Icon.svelte';
+  import Blob from '../../ui/Blob.svelte';
   import { other, type Slot } from '../types';
-  import { BRUSHES, CANVAS, MODES, PALETTE, type SketchPhone } from './logic';
+  import { BRUSHES, CANVAS, PALETTE, type SketchPhone } from './logic';
   import Pattern from './Pattern.svelte';
   import { drawStroke, prepare, redraw, type Surface } from './render';
 
@@ -22,12 +22,10 @@
 
   const LEVELS = ['', 'Facile', 'Moyen', 'Difficile'];
   const partner = $derived(seats[other(view.me)]?.name ?? 'l’autre');
-  const mode = $derived(MODES[view.mode]);
 
   let color = $state<string>(PALETTE[0]);
   let brush = $state<number>(BRUSHES[1]);
   let canvas = $state<HTMLCanvasElement | null>(null);
-  let strokeDone = $state(false);
   let guess = $state('');
 
   let strokes: LocalStroke[] = [];
@@ -36,7 +34,7 @@
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
   let round = -1;
 
-  const canDraw = $derived(view.role === 'drawer' && view.canDraw && !strokeDone);
+  const canDraw = $derived(view.role === 'drawer' && view.canDraw);
 
   $effect.pre(() => {
     if (view.round !== round) {
@@ -44,7 +42,6 @@
       strokes = [];
       current = null;
       nextId = 1;
-      strokeDone = false;
       guess = '';
     }
   });
@@ -57,24 +54,14 @@
     return canvas ? prepare(canvas) : null;
   }
 
-  function displayed(stroke: LocalStroke) {
-    if (view.mode !== 'straight' || stroke.points.length <= 4) return stroke;
-    const p = stroke.points;
-    return { ...stroke, points: [p[0], p[1], p[p.length - 2], p[p.length - 1]] };
-  }
-
   function repaint() {
     const target = surface();
     if (!target) return;
-    redraw(target, view.mode === 'blind' ? [] : strokes.map(displayed));
+    redraw(target, strokes);
   }
 
   function paintCurrent() {
-    if (!current || view.mode === 'blind') return;
-    if (view.mode === 'straight') {
-      repaint();
-      return;
-    }
+    if (!current) return;
     const target = surface();
     if (target) drawStroke(target, current, Math.max(0, current.points.length / 2 - 1));
   }
@@ -82,9 +69,8 @@
   function toCanvas(event: PointerEvent): [number, number] {
     const rect = (canvas as HTMLCanvasElement).getBoundingClientRect();
     const clamp = (value: number) => Math.min(CANVAS, Math.max(0, Math.round(value)));
-    let x = clamp(((event.clientX - rect.left) / rect.width) * CANVAS);
+    const x = clamp(((event.clientX - rect.left) / rect.width) * CANVAS);
     const y = clamp(((event.clientY - rect.top) / rect.height) * CANVAS);
-    if (view.mode === 'mirror') x = CANVAS - x;
     return [x, y];
   }
 
@@ -117,7 +103,6 @@
     if (!current) return;
     flush(true);
     current = null;
-    if (view.mode === 'oneStroke') strokeDone = true;
   }
 
   function schedule() {
@@ -169,25 +154,20 @@
 
   {#if view.phase === 'reveal'}
     <div class="reveal" class:success={view.success} in:fly={{ y: 20, duration: 300 }}>
-      <Icon name={view.success ? 'party-popper' : 'loudly-crying-face'} size="3.4rem" />
+      <Blob slot={view.me} size="4rem" mood={view.success ? 'happy' : 'sad'} bounce={view.success === true} />
       <h2>{view.success ? `Trouvé ! +${view.points}` : 'Raté…'}</h2>
       {#if view.word}<p>C’était : <b>{view.word}</b></p>{/if}
     </div>
   {:else if view.role === 'drawer'}
-    {#if view.mode !== 'normal'}
-      <div class="mode paper">
-        <Icon name={mode.icon} size="2rem" />
-        <div>
-          <b>{mode.title}</b>
-          <p>{mode.description}</p>
-        </div>
-      </div>
-    {/if}
     {#if view.phase === 'choose'}
       <p class="lead">Choisis le mot que tu vas dessiner :</p>
       <div class="choices">
         {#each view.choices as choice, index (choice.word)}
-          <button class="choice paper" onclick={() => act({ type: 'choose', index })}>
+          <button
+            class="choice paper level{choice.level}"
+            style:animation-delay={`${index * 80}ms`}
+            onclick={() => act({ type: 'choose', index })}
+          >
             <span class="level">{LEVELS[choice.level]} · ×{choice.level}</span>
             <span class="word">{choice.word}</span>
           </button>
@@ -204,12 +184,6 @@
           onpointercancel={up}
           aria-label="Zone de dessin"
         ></canvas>
-        {#if view.mode === 'blind'}
-          <div class="veil"><Icon name="see-no-evil-monkey" size="3rem" /><span>Tu dessines à l’aveugle !</span></div>
-        {/if}
-        {#if strokeDone}
-          <div class="veil light"><span>Trait terminé ! Croise les doigts.</span></div>
-        {/if}
       </div>
       <div class="tools">
         <div class="colors">
@@ -229,10 +203,8 @@
               <span style:width={`${size / 2.4}px`} style:height={`${size / 2.4}px`} style:background={color}></span>
             </button>
           {/each}
-          {#if view.mode !== 'oneStroke'}
-            <button class="tool" aria-label="Annuler le dernier trait" onclick={undo}><Undo2 size={22} /></button>
-            <button class="tool" aria-label="Tout effacer" onclick={wipe}><Trash2 size={22} /></button>
-          {/if}
+          <button class="tool" aria-label="Annuler le dernier trait" onclick={undo}><Undo2 size={22} /></button>
+          <button class="tool" aria-label="Tout effacer" onclick={wipe}><Trash2 size={22} /></button>
           <button class="skip" onclick={() => act({ type: 'skip' })}>Passer</button>
         </div>
       </div>
@@ -243,9 +215,8 @@
   {:else}
     {#if view.phase === 'choose'}
       <div class="wait">
-        <Icon name="thinking-face" size="3.4rem" />
+        <Blob slot={view.me === 0 ? 1 : 0} size="4rem" mood="wink" bounce />
         <p>{partner} choisit un mot…</p>
-        {#if view.mode !== 'normal'}<p class="sub">Contrainte : {mode.title}</p>{/if}
       </div>
     {:else}
       <p class="lead">Regarde la télé et devine le dessin de {partner} !</p>
@@ -261,6 +232,7 @@
         <input
           bind:value={guess}
           maxlength="40"
+          class="field"
           placeholder="Ta proposition"
           autocomplete="off"
           autocapitalize="none"
@@ -296,17 +268,22 @@
   }
 
   .head b {
-    color: var(--yellow);
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.2em;
   }
 
   .time {
-    padding: 0.1rem 0.6rem;
+    padding: 0.1rem 0.7rem;
     border-radius: 999px;
-    background: var(--plum-2);
+    border: 2px solid var(--ink);
+    background: var(--cream);
   }
 
   .time.urgent {
-    background: var(--red);
+    background: var(--cherry);
+    color: var(--cream);
+    animation: wiggle 0.5s ease-in-out infinite;
   }
 
   .lead {
@@ -316,36 +293,21 @@
   }
 
   .target {
+    display: inline-block;
     font-family: var(--display);
     font-weight: 400;
     font-size: 1.5rem;
-    color: var(--yellow);
-    text-transform: uppercase;
-  }
-
-  .mode {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    padding: 0.6rem 0.8rem;
-    background: var(--yellow);
-  }
-
-  .mode b {
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: 1.2rem;
-  }
-
-  .mode p {
-    font-size: 0.9rem;
-    line-height: 1.3;
+    padding: 0 0.4rem;
+    border-radius: 0.4rem;
+    background: var(--butter);
+    border: 2px solid var(--ink);
+    transform: rotate(-2deg);
   }
 
   .choices {
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
+    gap: 0.8rem;
   }
 
   .choice {
@@ -355,16 +317,34 @@
     gap: 0.2rem;
     padding: 0.9rem 1rem;
     text-align: left;
+    animation: drop-in 0.45s var(--snap) backwards;
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
   }
 
   .choice:active {
-    transform: translateY(3px);
+    transform: translate(4px, 5px);
+    box-shadow: 0 0 0 var(--ink);
+  }
+
+  .level1 {
+    background: #d7fff2;
+  }
+
+  .level2 {
+    background: var(--butter);
+  }
+
+  .level3 {
+    background: var(--blush);
   }
 
   .level {
     font-weight: 800;
-    font-size: 0.85rem;
-    color: #5b4d44;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .word {
@@ -391,25 +371,6 @@
     pointer-events: none;
   }
 
-  .veil {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: var(--plum-2);
-    color: var(--cream);
-    font-weight: 900;
-    font-size: 1.1rem;
-    pointer-events: none;
-  }
-
-  .veil.light {
-    background: rgba(29, 22, 18, 0.55);
-  }
-
   .tools {
     display: flex;
     flex-direction: column;
@@ -427,11 +388,14 @@
     border-radius: 50%;
     border: 2px solid var(--ink);
     min-height: 2.2rem;
+    transition: transform 0.15s var(--spring);
   }
 
   .swatch.active {
-    box-shadow: 0 0 0 3px var(--cream);
-    transform: scale(1.08);
+    box-shadow:
+      0 0 0 3px var(--cream),
+      0 0 0 5px var(--ink);
+    transform: scale(1.12);
   }
 
   .row {
@@ -450,10 +414,17 @@
     background: var(--cream);
     color: var(--ink);
     border: 2px solid var(--ink);
+    box-shadow: 2px 3px 0 var(--ink);
+  }
+
+  .brush:active,
+  .tool:active {
+    transform: translate(2px, 3px);
+    box-shadow: none;
   }
 
   .brush.active {
-    background: var(--yellow);
+    background: var(--butter);
   }
 
   .brush span {
@@ -467,17 +438,12 @@
     padding: 0.5rem 0.9rem;
     min-height: 2.75rem;
     border-radius: 0.7rem;
-    border: 2px solid var(--muted);
-    color: var(--muted);
+    border: 2px dashed var(--ink);
     font-weight: 800;
   }
 
   .last {
-    color: var(--muted);
-  }
-
-  .last b {
-    color: var(--text);
+    font-weight: 600;
   }
 
   .wait,
@@ -494,20 +460,21 @@
   }
 
   .reveal h2 {
-    font-size: 2.4rem;
+    font-size: 2.6rem;
+    color: var(--cream);
+    -webkit-text-stroke: 0.035em var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 0.04em 0.05em 0 var(--ink);
+    --tilt: -3deg;
+    animation: stamp 0.55s var(--snap) both;
   }
 
   .reveal.success h2 {
-    color: var(--yellow);
+    color: var(--butter);
   }
 
   .reveal b {
-    color: var(--yellow);
     text-transform: uppercase;
-  }
-
-  .sub {
-    color: var(--muted);
   }
 
   .pattern {
@@ -518,29 +485,20 @@
   .feedback {
     text-align: center;
     font-weight: 800;
-    color: var(--muted);
   }
 
   .feedback.near {
-    color: var(--orange);
+    align-self: center;
+    padding: 0.2rem 0.8rem;
+    border-radius: 999px;
+    border: 2px solid var(--ink);
+    background: var(--tangerine);
   }
 
   .guess {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 0.6rem;
-  }
-
-  .guess input {
-    min-width: 0;
-    padding: 0.8rem;
-    border-radius: 0.9rem;
-    border: 3px solid var(--ink);
-    background: var(--cream);
-    color: var(--ink);
-    font-weight: 800;
-    font-size: 1.1rem;
-    outline: none;
   }
 
   .guesses {
@@ -557,16 +515,17 @@
     justify-content: space-between;
     padding: 0.45rem 0.8rem;
     border-radius: 0.8rem;
-    background: var(--plum-2);
+    background: var(--cream);
+    border: 2px solid var(--ink);
     font-weight: 800;
   }
 
   .guesses li.near {
-    border: 2px solid var(--orange);
+    background: #ffd9bf;
   }
 
   .guesses em {
     font-style: normal;
-    color: var(--orange);
+    color: var(--berry);
   }
 </style>

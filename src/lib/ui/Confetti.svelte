@@ -4,7 +4,7 @@
   let { count = 180, duration = 4200 }: { count?: number; duration?: number } = $props();
   let canvas: HTMLCanvasElement;
 
-  const COLORS = ['#f08a2c', '#5b8fe8', '#4e9a6b', '#f4db7c', '#e9465a', '#f7bc6e', '#fbf6ec'];
+  const COLORS = ['#3b46ff', '#ffd23d', '#fff3e6', '#e8213f', '#2fd1a5', '#ff7a2e', '#2a0c1d'];
 
   onMount(() => {
     const context = canvas.getContext('2d');
@@ -21,11 +21,11 @@
       y: height * 0.35,
       vx: (Math.random() - 0.5) * width * 0.012,
       vy: -(Math.random() * height * 0.022 + height * 0.008),
-      size: 6 + Math.random() * 10,
+      size: 8 + Math.random() * 12,
       rotation: Math.random() * Math.PI,
       spin: (Math.random() - 0.5) * 0.3,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      round: Math.random() < 0.3,
+      shape: Math.random() < 0.25 ? 'heart' : Math.random() < 0.35 ? 'round' : 'rect',
     }));
 
     const start = performance.now();
@@ -45,7 +45,17 @@
         context.translate(piece.x, piece.y);
         context.rotate(piece.rotation);
         context.fillStyle = piece.color;
-        if (piece.round) {
+        if (piece.shape === 'heart') {
+          const s = piece.size / 16;
+          context.scale(s, s);
+          context.beginPath();
+          context.moveTo(0, 6);
+          context.bezierCurveTo(-9, 0, -10, -6, -5.5, -8.5);
+          context.bezierCurveTo(-2.5, -10, 0, -7.5, 0, -6);
+          context.bezierCurveTo(0, -7.5, 2.5, -10, 5.5, -8.5);
+          context.bezierCurveTo(10, -6, 9, 0, 0, 6);
+          context.fill();
+        } else if (piece.shape === 'round') {
           context.beginPath();
           context.arc(0, 0, piece.size / 2.4, 0, Math.PI * 2);
           context.fill();

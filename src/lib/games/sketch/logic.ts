@@ -1,4 +1,3 @@
-import type { IconName } from '../../icons/icons';
 import { levenshtein, normalize } from '../../text';
 import { isInt, isRecord, other, type GameContext, type GameDefinition, type GameInstance, type Slot, type TimerHandle } from '../types';
 import { SKETCH_WORDS } from './words';
@@ -13,20 +12,7 @@ const MAX_POINTS_PER_ROUND = 40000;
 const MAX_GUESSES = 6;
 const HINT_TIMES = [40, 60];
 
-export type SketchMode = 'normal' | 'blind' | 'oneStroke' | 'straight' | 'mirror';
 export type Level = 1 | 2 | 3;
-
-export const MODES: Record<SketchMode, { title: string; description: string; icon: IconName }> = {
-  normal: { title: 'Dessin libre', description: 'Aucune contrainte, fais-toi plaisir.', icon: 'artist-palette' },
-  blind: {
-    title: 'Les yeux bandés',
-    description: 'Ton dessin n’apparaît pas sur ton téléphone. Seule la télé le voit !',
-    icon: 'see-no-evil-monkey',
-  },
-  oneStroke: { title: 'D’un seul trait', description: 'Tu as droit à un seul trait : ne lève pas le doigt !', icon: 'fountain-pen' },
-  straight: { title: 'Que des lignes droites', description: 'Chaque trait devient une ligne droite.', icon: 'straight-ruler' },
-  mirror: { title: 'Dessin miroir', description: 'Tout ce que tu dessines apparaît inversé, comme dans un miroir.', icon: 'mirror' },
-};
 
 export interface Stroke {
   id: number;
@@ -47,7 +33,6 @@ export interface SketchTv {
   round: number;
   rounds: number;
   drawer: Slot;
-  mode: SketchMode;
   level: Level | null;
   pattern: string;
   word: string | null;
@@ -67,7 +52,6 @@ export type SketchPhone = {
   me: Slot;
   round: number;
   rounds: number;
-  mode: SketchMode;
   remaining: number;
   guesses: GuessView[];
   success: boolean | null;
@@ -108,7 +92,6 @@ class Sketch implements GameInstance {
   private round = 0;
   private phase: SketchTv['phase'] = 'choose';
   private drawer: Slot;
-  private mode: SketchMode = 'normal';
   private choices: { word: string; level: Level }[] = [];
   private word: string | null = null;
   private level: Level | null = null;
@@ -125,7 +108,6 @@ class Sketch implements GameInstance {
   private points = 0;
   private score = 0;
   private found = 0;
-  private readonly used = new Set<string>();
   private tick: TimerHandle | null = null;
 
   constructor(private readonly ctx: GameContext) {
@@ -142,12 +124,6 @@ class Sketch implements GameInstance {
   private prepareRound(): void {
     this.phase = 'choose';
     this.drawer = ((this.ctx.starter + this.round) % 2) as Slot;
-    this.mode =
-      this.round === 0
-        ? 'normal'
-        : this.ctx.rng.next() < 0.4
-          ? 'normal'
-          : this.ctx.rng.pick(['blind', 'oneStroke', 'straight', 'mirror'] as const);
     this.choices = ([1, 2, 3] as Level[]).map((level) => ({ word: this.drawWord(level), level }));
     this.word = null;
     this.level = null;
@@ -164,10 +140,7 @@ class Sketch implements GameInstance {
   }
 
   private drawWord(level: Level): string {
-    const available = SKETCH_WORDS[level].filter((word) => !this.used.has(word));
-    const word = this.ctx.rng.pick(available.length ? available : SKETCH_WORDS[level]);
-    this.used.add(word);
-    return word;
+    return this.ctx.draw(`sketch-${level}`, SKETCH_WORDS[level], (word) => word);
   }
 
   private drawerAction(action: Record<string, unknown>): void {
@@ -189,14 +162,14 @@ class Sketch implements GameInstance {
         this.stroke(action);
         break;
       case 'undo':
-        if (this.mode !== 'oneStroke' && this.strokes.length) {
+        if (this.strokes.length) {
           this.strokes.pop();
           this.strokeRev += 1;
           this.ctx.update();
         }
         break;
       case 'clear':
-        if (this.mode !== 'oneStroke' && this.strokes.length) {
+        if (this.strokes.length) {
           this.strokes = [];
           this.strokeRev += 1;
           this.ctx.update();
@@ -214,7 +187,6 @@ class Sketch implements GameInstance {
     if (!points.every((value) => isInt(value, 0, CANVAS))) return;
     let stroke = this.strokes.find((candidate) => candidate.id === action.id);
     if (!stroke) {
-      if (this.mode === 'oneStroke' && this.strokes.length > 0) return;
       const color = PALETTE.find((candidate) => candidate === action.color) ?? PALETTE[0];
       const size = BRUSHES.find((candidate) => candidate === action.size) ?? BRUSHES[1];
       stroke = { id: action.id, color, size, points: [], ended: false };
@@ -222,13 +194,8 @@ class Sketch implements GameInstance {
     }
     if (stroke.ended) return;
     if (this.pointCount + points.length / 2 > MAX_POINTS_PER_ROUND) return;
-    if (this.mode === 'straight') {
-      const merged = [...stroke.points, ...(points as number[])];
-      stroke.points = merged.length > 4 ? [merged[0], merged[1], merged[merged.length - 2], merged[merged.length - 1]] : merged;
-    } else {
-      stroke.points.push(...(points as number[]));
-      this.pointCount += points.length / 2;
-    }
+    stroke.points.push(...(points as number[]));
+    this.pointCount += points.length / 2;
     if (action.end === true) stroke.ended = true;
     this.strokeRev += 1;
     this.ctx.update();
@@ -321,7 +288,6 @@ class Sketch implements GameInstance {
       round: this.round,
       rounds: ROUNDS,
       drawer: this.drawer,
-      mode: this.mode,
       level: this.level,
       pattern: this.pattern(),
       word: this.phase === 'reveal' ? this.word : null,
@@ -343,7 +309,6 @@ class Sketch implements GameInstance {
       me: slot,
       round: this.round,
       rounds: ROUNDS,
-      mode: this.mode,
       remaining: this.remaining(),
       guesses: this.guesses,
       success: this.success,
@@ -352,14 +317,13 @@ class Sketch implements GameInstance {
       guard: `${this.round}-${this.phase}`,
     };
     if (slot === this.drawer) {
-      const lockedOneStroke = this.mode === 'oneStroke' && this.strokes.some((stroke) => stroke.ended);
       return {
         ...base,
         role: 'drawer',
         choices: this.phase === 'choose' ? this.choices : [],
         word: this.word,
         level: this.level,
-        canDraw: this.phase === 'draw' && !lockedOneStroke,
+        canDraw: this.phase === 'draw',
         strokeCount: this.strokes.length,
       };
     }
@@ -377,14 +341,12 @@ class Sketch implements GameInstance {
 export const sketch: GameDefinition = {
   id: 'sketch',
   title: 'Gribouille',
-  tagline: 'L’un dessine, l’autre devine… avec des contraintes farfelues.',
-  icon: 'artist-palette',
-  accent: '#f08a2c',
+  tagline: 'L’un dessine sur son téléphone, l’autre devine sur la télé.',
+  accent: '#ff7a2e',
   coop: true,
   rules: [
     'Chacun son tour, l’un choisit un mot (facile, moyen ou difficile) et le dessine sur son téléphone. Le dessin apparaît en direct sur la télé.',
     'L’autre tape ses propositions sur son téléphone. Plus vous trouvez vite, plus vous marquez de points !',
-    'Certaines manches ajoutent une contrainte : les yeux bandés, d’un seul trait, que des lignes droites ou en miroir.',
     `Vous jouez en équipe : ${ROUNDS} manches pour battre votre record.`,
   ],
   create: (ctx) => new Sketch(ctx),

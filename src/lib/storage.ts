@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   trophies: 'lmdc:trophies',
   sound: 'lmdc:sound',
   records: 'lmdc:records',
+  seen: 'lmdc:seen',
 } as const;
 
 type Area = 'local' | 'session';

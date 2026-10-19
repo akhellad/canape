@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fade } from 'svelte/transition';
+  import { enter, leave } from '../lib/ui/motion';
   import { createHostTransport, displayUrl, joinUrl } from '../lib/config';
   import { keepAwake } from '../lib/fx/haptics';
   import { playFx, unlockAudio } from '../lib/fx/sound';
@@ -11,6 +11,7 @@
   import { HostRoom } from '../lib/room/host-room';
   import { browserTimers } from '../lib/room/scheduler';
   import { readJson, readStorage, STORAGE_KEYS, writeJson, writeStorage } from '../lib/storage';
+  import Rays from '../lib/ui/Rays.svelte';
   import Countdown from './Countdown.svelte';
   import Header from './Header.svelte';
   import Lobby from './Lobby.svelte';
@@ -36,6 +37,14 @@
         const all = readJson<Record<string, number>>(STORAGE_KEYS.trophies, {});
         all[name.toLowerCase()] = count;
         writeJson(STORAGE_KEYS.trophies, all);
+      },
+    },
+    history: {
+      load: (deck) => readJson<Record<string, string[]>>(STORAGE_KEYS.seen, {})[deck] ?? [],
+      save: (deck, keys) => {
+        const all = readJson<Record<string, string[]>>(STORAGE_KEYS.seen, {});
+        all[deck] = keys;
+        writeJson(STORAGE_KEYS.seen, all);
       },
     },
   });
@@ -72,7 +81,7 @@
 
   function updateRecord(game: GameId, result: GameResult): { best: number; beaten: boolean } | null {
     const score = result.coop?.score;
-    if (game !== 'sketch' || score === undefined) return null;
+    if (!CATALOG[game].coop || score === undefined) return null;
     const all = readJson<Record<string, number>>(STORAGE_KEYS.records, {});
     const previous = all[game] ?? 0;
     const beaten = score > previous;
@@ -129,10 +138,11 @@
 </script>
 
 <div class="tv">
+  <Rays fast={stage.kind === 'countdown'} />
   <Header seats={snapshot.seats} {code} {network} {soundOn} />
   <main>
     {#key stageKey}
-      <div class="stage" in:fade={{ duration: 350, delay: 150 }} out:fade={{ duration: 150 }}>
+      <div class="stage" in:enter out:leave>
         {#if stage.kind === 'lobby'}
           <Lobby seats={snapshot.seats} {code} url={joinUrl(code)} host={displayUrl()} ready={network === 'ready'} />
         {:else if stage.kind === 'menu'}
@@ -160,6 +170,7 @@
 <style>
   .tv {
     position: relative;
+    isolation: isolate;
     width: 100vw;
     height: 100vh;
     display: flex;
@@ -172,6 +183,7 @@
 
   main {
     position: relative;
+    z-index: 1;
     flex: 1;
     min-height: 0;
     display: grid;

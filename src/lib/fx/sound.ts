@@ -119,6 +119,14 @@ export function playFx(kind: FxKind): void {
     case 'reveal':
       for (let i = 0; i < 8; i++) tone(180 + i * 25, i * 0.1, 0.06, { type: 'square', gain: 0.05 });
       break;
+    case 'flip':
+      for (let i = 0; i < 4; i++) tone(500 + i * 120, i * 0.05, 0.06, { type: 'triangle', gain: 0.12 });
+      noise(0, 0.06, { gain: 0.2, from: 4000 });
+      break;
+    case 'lock':
+      tone(880, 0, 0.08, { type: 'square', gain: 0.08 });
+      tone(1320, 0.06, 0.1, { type: 'triangle', gain: 0.1 });
+      break;
     case 'tick':
       tone(1000, 0, 0.05, { type: 'square', gain: 0.05 });
       break;

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   backToMenu,
   contrastIssues,
@@ -115,104 +115,82 @@ test('Touché-coulé se joue jusqu’au naufrage', async () => {
   await backToMenu(table);
 });
 
-test('Kif-Kif se joue jusqu’à la dernière carte', async () => {
-  await startGame(table, 'Kif-Kif');
-  await look(table.tv, 'tv-kifkif-start');
-  await look(table.phones[0], 'phone-kifkif-start');
-  const [a] = table.phones;
-  const wrong = await a.locator('.stack .card').last().locator('[data-symbol]').first().getAttribute('data-symbol');
-  const centerSymbols = async () => {
-    const center = await table.tv.locator('.kif').getAttribute('data-center');
-    return table.tv
-      .locator(`.big [data-card="${center}"] [data-symbol]`)
-      .evaluateAll((items) => items.map((item) => item.getAttribute('data-symbol')));
-  };
-  if (wrong && !(await centerSymbols()).includes(wrong)) {
-    await tapSettled(a, a.locator(`.stack [data-symbol="${wrong}"]`).first());
-    await expect(a.locator('.penalty')).toBeVisible();
-    await shot(table.tv, 'tv-kifkif-miss');
-    await shot(a, 'phone-kifkif-miss');
-    await expect(a.locator('.penalty')).toBeHidden({ timeout: 4000 });
-  }
-  let turns = 0;
-  while (!(await resultVisible(table)) && turns < 120) {
-    const phone = table.phones[turns % 2];
-    await settled(phone);
-    const center = await centerSymbols();
-    const mine = await phone
-      .locator('.stack .card')
-      .last()
-      .locator('[data-symbol]')
-      .evaluateAll((items) => items.map((item) => item.getAttribute('data-symbol')));
-    const common = mine.find((symbol) => center.includes(symbol));
-    if (common) await phone.locator(`.stack .card`).last().locator(`[data-symbol="${common}"]`).tap();
-    turns += 1;
-    if (turns === 6) {
-      await table.tv.waitForTimeout(250);
-      await shot(table.tv, 'tv-kifkif-match');
+test('Quiz se joue sur toutes les questions', async () => {
+  await startGame(table, 'Quiz');
+  await expect(table.tv.locator('.quiz .question')).toBeVisible();
+  for (let question = 0; question < 10; question++) {
+    await expect(table.tv.locator('.quiz .meta .count')).toContainText(`Question ${question + 1} /`, { timeout: 15_000 });
+    for (const [index, phone] of table.phones.entries()) {
+      await tapSettled(phone, phone.locator('.choice').nth(index));
     }
-    await table.tv.waitForTimeout(450);
+    await expect(table.tv.locator('.choice.right')).toHaveCount(1, { timeout: 5000 });
+    if (question === 0) {
+      await look(table.tv, 'tv-quiz-reveal');
+      await look(table.phones[0], 'phone-quiz-reveal');
+    }
   }
-  await expect(table.tv.locator('.overlay .card h1')).toContainText('l’œil le plus rapide', { timeout: 15_000 });
-  await shot(table.tv, 'tv-kifkif-result');
+  await expect(table.tv.locator('.overlay .card h1')).toBeVisible({ timeout: 15_000 });
+  await look(table.tv, 'tv-quiz-result');
   await backToMenu(table);
 });
 
-test('Agents doubles se joue jusqu’à la mission accomplie', async () => {
-  await startGame(table, 'Agents doubles');
-  let guard = 0;
-  let clueShot = false;
-  while (!(await resultVisible(table)) && guard++ < 80) {
-    const cluing = await (async () => {
-      for (const [index, phone] of table.phones.entries()) if (await phone.locator('.clue-form').isVisible()) return index;
-      return -1;
-    })();
-    if (cluing >= 0) {
-      const phone = table.phones[cluing];
-      await settled(phone);
-      if (!clueShot) await look(phone, 'phone-agents-clue');
-      await phone.locator('.clue-form input').fill('indice');
-      await tapSettled(phone, phone.getByRole('button', { name: 'Envoyer l’indice' }));
-      await table.tv.waitForTimeout(300);
-      if (!clueShot) {
-        clueShot = true;
-        await look(table.tv, 'tv-agents-clue');
-      }
-      continue;
-    }
-    const guessing = await (async () => {
-      for (const [index, phone] of table.phones.entries()) if (await phone.locator('.clue b').isVisible()) return index;
-      return -1;
-    })();
-    if (guessing < 0) {
-      await table.tv.waitForTimeout(200);
-      continue;
-    }
-    const guesser = table.phones[guessing];
-    const giver = table.phones[guessing === 0 ? 1 : 0];
-    await settled(giver);
-    const targets = await giver
-      .locator('.grid .tile')
-      .evaluateAll((tiles) =>
-        tiles
-          .map((tile, index) => (tile.classList.contains('key-agent') && !tile.classList.contains('found') ? index : -1))
-          .filter((index) => index >= 0),
-      );
-    if (!targets.length) {
-      await table.tv.waitForTimeout(300);
-      continue;
-    }
-    await tapSettled(guesser, guesser.locator('.grid .tile').nth(targets[0]));
-    await tapSettled(guesser, guesser.getByRole('button', { name: /^Valider/ }));
-    await expect(table.tv.locator('.tile.found')).not.toHaveCount(0);
-    await table.tv.waitForTimeout(1100);
-    if (guard === 4) {
-      await look(table.tv, 'tv-agents-play');
-      await look(guesser, 'phone-agents-guess');
+test('Qui de nous deux ? compte les réponses communes', async () => {
+  await startGame(table, 'Qui de nous deux');
+  for (let round = 0; round < 12; round++) {
+    await expect(table.tv.locator('.couple .round')).toContainText(`Question ${round + 1} /`, { timeout: 15_000 });
+    if (round === 0) await look(table.phones[0], 'phone-couple-ask');
+    for (const phone of table.phones) await tapSettled(phone, phone.locator('.choice').first());
+    await expect(table.tv.locator('.couple .verdict.match')).toBeVisible({ timeout: 5000 });
+    if (round === 0) await look(table.tv, 'tv-couple-reveal');
+  }
+  await expect(table.tv.locator('.overlay .card h1')).toContainText('Âmes sœurs', { timeout: 15_000 });
+  await look(table.tv, 'tv-couple-result');
+  await backToMenu(table);
+});
+
+test('Mots interdits : une manche complète, carte cachée de la télé', async () => {
+  await startGame(table, 'Mots interdits');
+  const describer = await whichPhone(table, '.start');
+  const phone = table.phones[describer];
+  await look(table.tv, 'tv-taboo-ready');
+  await tapSettled(phone, phone.locator('.start'));
+  const word = ((await phone.locator('.card .word').textContent()) ?? '').trim();
+  expect(word.length).toBeGreaterThan(1);
+  await expect(table.tv.locator('.taboo')).not.toContainText(word);
+  await look(phone, 'phone-taboo-card');
+  for (const label of ['Trouvé !', 'Passer', 'Trouvé !', 'Buzz']) {
+    await tapSettled(phone, phone.getByRole('button', { name: label, exact: true }));
+  }
+  await expect(table.tv.locator('.pile .card')).toHaveCount(4);
+  await expect(table.tv.locator('.taboo')).toContainText(word);
+  await look(table.tv, 'tv-taboo-play');
+  await expect(table.tv.locator('.taboo .over')).toBeVisible({ timeout: 70_000 });
+  await expect(table.tv.locator('.total b')).toHaveText('2');
+  await tapSettled(table.phones[0], table.phones[0].getByRole('button', { name: 'Menu de la partie' }));
+  await tapSettled(table.phones[0], table.phones[0].getByRole('button', { name: 'Quitter la partie' }));
+  await tapSettled(table.phones[0], table.phones[0].getByRole('button', { name: 'Oui, quitter' }));
+  await expect(table.tv.locator('.menu h1')).toBeVisible();
+});
+
+test('Reversi se joue jusqu’au plateau final', async () => {
+  await startGame(table, 'Reversi');
+  let moves = 0;
+  while (!(await resultVisible(table)) && moves < 70) {
+    const current = await whichPhone(table, '.place');
+    if (current < 0) break;
+    const phone = table.phones[current];
+    const before = await table.tv.locator('.board .disc:not(.ghost)').count();
+    await tapSettled(phone, phone.locator('.cell.playable').first());
+    await tapSettled(phone, phone.locator('.cell.aimed'));
+    await expect(table.tv.locator('.board .disc:not(.ghost)')).toHaveCount(before + 1);
+    moves += 1;
+    if (moves === 8) {
+      await look(table.tv, 'tv-reversi-play');
+      await look(phone, 'phone-reversi-play');
     }
   }
-  await expect(table.tv.locator('.overlay .card h1')).toContainText('Mission accomplie', { timeout: 15_000 });
-  await shot(table.tv, 'tv-agents-result');
+  await expect(table.tv.locator('.overlay .card h1')).toBeVisible({ timeout: 15_000 });
+  await look(table.tv, 'tv-reversi-result');
   await backToMenu(table);
 });
 
@@ -266,6 +244,146 @@ test('Gribouille se joue sur toutes les manches, dessin en direct', async () => 
   await expect(table.tv.locator('.overlay .card h1')).toContainText('Score d’équipe', { timeout: 10_000 });
   await shot(table.tv, 'tv-sketch-result');
   await shot(table.phones[0], 'phone-sketch-result');
+  await backToMenu(table);
+});
+
+test('Qui est-ce ? se joue jusqu’à l’accusation', async () => {
+  await startGame(table, 'Qui est-ce');
+  const first = await whichPhone(table, '.actions .go');
+  const asker = table.phones[first];
+  for (const card of [0, 1, 2]) await tapSettled(asker, asker.locator('.grid .card').nth(card));
+  await expect(table.tv.locator('.board .left').first()).toContainText('suspect');
+  await look(asker, 'phone-guesswho-play');
+  await tapSettled(asker, asker.getByRole('button', { name: 'J’ai fini mon tour' }));
+  const guesser = table.phones[first === 0 ? 1 : 0];
+  const target = ((await asker.locator('.mine .who b').textContent()) ?? '').trim();
+  await look(table.tv, 'tv-guesswho-play');
+  await tapSettled(guesser, guesser.getByRole('button', { name: 'Je sais qui c’est !' }));
+  await tapSettled(guesser, guesser.getByRole('button', { name: target, exact: true }));
+  await tapSettled(guesser, guesser.getByRole('button', { name: `Accuser ${target}` }));
+  await expect(table.tv.locator('.overlay .card h1')).toContainText(`a démasqué ${target}`, { timeout: 15_000 });
+  await look(table.tv, 'tv-guesswho-result');
+  await backToMenu(table);
+});
+
+test('Code secret se joue jusqu’au code cassé', async () => {
+  await startGame(table, 'Code secret');
+  const codes = [
+    [0, 1, 2, 3],
+    [5, 5, 4, 4],
+  ];
+  for (const [index, phone] of table.phones.entries()) {
+    for (const color of codes[index]) await tapSettled(phone, phone.locator('.palette .color').nth(color));
+    await tapSettled(phone, phone.getByRole('button', { name: 'Valider mon code' }));
+  }
+  let guard = 0;
+  while (!(await resultVisible(table)) && guard++ < 4) {
+    const current = await whichPhone(table, '.palette');
+    if (current < 0) break;
+    const phone = table.phones[current];
+    const guess = guard === 1 ? [1, 1, 1, 1] : codes[current === 0 ? 1 : 0];
+    for (const color of guess) await tapSettled(phone, phone.locator('.palette .color').nth(color));
+    await tapSettled(phone, phone.getByRole('button', { name: 'Proposer' }));
+    if (guard === 2) await look(table.tv, 'tv-mastermind-play');
+  }
+  await expect(table.tv.locator('.overlay .card h1')).toContainText('cassé le code', { timeout: 15_000 });
+  await look(table.tv, 'tv-mastermind-result');
+  await backToMenu(table);
+});
+
+test('Petit Bac se joue sur les trois manches', async () => {
+  await startGame(table, 'Petit Bac');
+  const endings = ['ouette', 'abricot', 'amille', 'olive', 'ulysse', 'ivresse'];
+  for (let round = 0; round < 3; round++) {
+    const letter = ((await table.tv.locator('.bac .letter').first().textContent()) ?? '').trim();
+    for (const [index, phone] of table.phones.entries()) {
+      await settled(phone);
+      const inputs = phone.locator('.answers input');
+      for (let k = 0; k < 6; k++) await inputs.nth(k).fill(`${letter}${endings[k]}${index && k > 2 ? 'z' : ''}`);
+    }
+    if (round === 0) await look(table.phones[0], 'phone-petitbac-write');
+    await tapSettled(table.phones[0], table.phones[0].locator('.stop'));
+    await expect(table.tv.locator('.bac .stop')).toBeVisible();
+    await expect(table.tv.locator('.bac .table')).toBeVisible({ timeout: 8000 });
+    await tapSettled(table.phones[1], table.phones[1].locator('.their').first());
+    await expect(table.tv.locator('.stamp.no')).toHaveCount(1);
+    if (round === 0) {
+      await look(table.tv, 'tv-petitbac-review');
+      await look(table.phones[1], 'phone-petitbac-review');
+    }
+    for (const phone of table.phones) await tapSettled(phone, phone.getByRole('button', { name: 'C’est bon pour moi' }));
+  }
+  await expect(table.tv.locator('.overlay .card h1')).toContainText('Petit Bac', { timeout: 15_000 });
+  await look(table.tv, 'tv-petitbac-result');
+  await backToMenu(table);
+});
+
+test('Yams se joue jusqu’à la grille pleine', async () => {
+  await startGame(table, 'Yams');
+  for (let turn = 0; turn < 26; turn++) {
+    const current = await whichPhone(table, '.roll');
+    if (current < 0) break;
+    const phone = table.phones[current];
+    await tapSettled(phone, phone.locator('.roll'));
+    await expect(table.tv.locator('.tray .die')).toHaveCount(5);
+    if (turn === 0) {
+      await tapSettled(phone, phone.locator('.dice .die').first());
+      await expect(phone.locator('.dice .die').first()).toHaveAttribute('aria-pressed', 'true');
+      await look(table.tv, 'tv-yams-play');
+      await look(phone, 'phone-yams-play');
+    }
+    await tapSettled(phone, phone.locator('.sheet .maybe').first());
+    await tapSettled(phone, phone.locator('.confirm'));
+  }
+  await expect(table.tv.locator('.overlay .card h1')).toBeVisible({ timeout: 15_000 });
+  await look(table.tv, 'tv-yams-result');
+  await backToMenu(table);
+});
+
+test('Memory se joue jusqu’à la dernière paire', async () => {
+  await startGame(table, 'Memory');
+  const known = new Map<number, string>();
+  const matched = new Set<number>();
+  let guard = 0;
+  const reveal = async (phone: Page, index: number) => {
+    await tapSettled(phone, phone.locator('.grid .card').nth(index));
+    const card = table.tv.locator('.grid .card').nth(index);
+    await expect(card).toHaveAttribute('data-symbol', /\d+/);
+    const symbol = await card.getAttribute('data-symbol');
+    known.set(index, symbol ?? '');
+    return symbol ?? '';
+  };
+  while (!(await resultVisible(table)) && guard++ < 60) {
+    const current = await whichPhone(table, '.status.mine');
+    if (current < 0) break;
+    const phone = table.phones[current];
+    const pair = [...known.entries()].find(
+      ([a, sa]) => !matched.has(a) && [...known.entries()].some(([b, sb]) => b !== a && sb === sa && !matched.has(b)),
+    );
+    let first: number;
+    let second: number;
+    if (pair) {
+      first = pair[0];
+      second = [...known.entries()].find(([b, sb]) => b !== first && sb === pair[1] && !matched.has(b))![0];
+      await reveal(phone, first);
+      await reveal(phone, second);
+    } else {
+      first = Array.from({ length: 24 }, (_, i) => i).find((i) => !known.has(i))!;
+      const symbol = await reveal(phone, first);
+      const twin = [...known.entries()].find(([b, sb]) => b !== first && sb === symbol);
+      second = twin ? twin[0] : Array.from({ length: 24 }, (_, i) => i).find((i) => !known.has(i))!;
+      await reveal(phone, second);
+    }
+    if (known.get(first) === known.get(second)) {
+      matched.add(first);
+      matched.add(second);
+    }
+    if (guard === 3) await look(table.tv, 'tv-memory-play');
+    await expect(table.tv.locator('.verdict')).toBeHidden({ timeout: 5000 });
+  }
+  await expect(table.tv.locator('.overlay .card h1')).toBeVisible({ timeout: 15_000 });
+  await look(table.tv, 'tv-memory-result');
+  await backToMenu(table);
 });
 
 test('aucun texte illisible sur les écrans des jeux', () => {

@@ -32,8 +32,9 @@
     padding: 0.3rem 0.9rem 0.3rem 0.5rem;
     border-radius: 999px;
     background: var(--pc);
-    color: var(--ink);
+    color: var(--pc-ink);
     border: 2px solid var(--ink);
+    box-shadow: 2px 3px 0 var(--ink);
     font-weight: 900;
     max-width: 60vw;
     overflow: hidden;
@@ -47,8 +48,10 @@
     display: grid;
     place-items: center;
     border-radius: 0.8rem;
-    background: var(--plum-2);
-    border: 2px solid var(--plum-3);
+    background: var(--cream);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    box-shadow: 2px 3px 0 var(--ink);
   }
 
   .spacer {

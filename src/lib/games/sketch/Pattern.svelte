@@ -59,7 +59,10 @@
 
   .answer {
     font-family: var(--display);
-    color: var(--yellow);
+    color: var(--butter);
+    -webkit-text-stroke: 0.06em var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 0.05em 0.06em 0 var(--ink);
     letter-spacing: 0.04em;
     text-align: center;
     animation: pop-in 0.35s ease-out;

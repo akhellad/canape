@@ -6,7 +6,7 @@
 
   $effect(() => {
     let cancelled = false;
-    QRCode.toString(value, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1d1612', light: '#fbf6ec' } })
+    QRCode.toString(value, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#2a0c1d', light: '#fff3e6' } })
       .then((markup) => {
         if (!cancelled) svg = markup;
       })

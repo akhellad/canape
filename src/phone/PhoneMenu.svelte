@@ -1,62 +1,88 @@
 <script lang="ts">
   import { CATALOG, GAME_ORDER } from '../lib/games/catalog';
   import type { GameId } from '../lib/games/types';
-  import Icon from '../lib/ui/Icon.svelte';
+  import GameArt from '../lib/ui/GameArt.svelte';
 
   let { onpick }: { onpick: (game: GameId) => void } = $props();
+
+  const GROUPS = [
+    { title: 'En équipe', ids: GAME_ORDER.filter((id) => CATALOG[id].coop) },
+    { title: 'En duel', ids: GAME_ORDER.filter((id) => !CATALOG[id].coop) },
+  ];
 </script>
 
 <div class="menu">
-  <h1>À quoi on joue ?</h1>
-  <div class="list">
-    {#each GAME_ORDER as id, index (id)}
-      {@const game = CATALOG[id]}
-      <button class="game paper" style:--accent={game.accent} style:animation-delay={`${index * 50}ms`} onclick={() => onpick(id)}>
-        <span class="badge"><Icon name={game.icon} size="2rem" /></span>
-        <span class="text">
-          <span class="title">{game.title} <em class:coop={game.coop}>{game.coop ? 'En équipe' : 'En duel'}</em></span>
-          <span class="tagline">{game.tagline}</span>
-        </span>
-      </button>
-    {/each}
-  </div>
+  <h1 class="pop">À quoi on joue ?</h1>
+  {#each GROUPS as group (group.title)}
+    <h2>{group.title}</h2>
+    <div class="list">
+      {#each group.ids as id, index (id)}
+        {@const game = CATALOG[id]}
+        <button
+          class="game paper"
+          style:--accent={game.accent}
+          style:--tilt={`${index % 2 ? 0.8 : -0.8}deg`}
+          style:animation-delay={`${index * 45}ms`}
+          onclick={() => onpick(id)}
+        >
+          <span class="badge"><GameArt game={id} size="2.6rem" /></span>
+          <span class="text">
+            <span class="title">{game.title}</span>
+            <span class="tagline">{game.tagline}</span>
+          </span>
+        </button>
+      {/each}
+    </div>
+  {/each}
 </div>
 
 <style>
   .menu {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.1rem;
   }
 
   h1 {
-    font-size: 2rem;
+    font-size: 2.3rem;
+    transform: rotate(-2deg);
+    transform-origin: left;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    margin-top: 0.4rem;
   }
 
   .list {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 0.9rem;
   }
 
   .game {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.9rem;
-    padding: 0.8rem 0.9rem;
+    padding: 0.7rem 0.9rem 0.7rem 0.7rem;
     text-align: left;
     font-size: 1rem;
-    animation: rise 0.35s backwards ease-out;
-    transition: transform 0.08s ease;
+    transform: rotate(var(--tilt));
+    animation: drop-in 0.45s var(--snap) backwards;
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
   }
 
   .game:active {
-    transform: translateY(3px);
+    transform: translate(4px, 5px);
+    box-shadow: 0 0 0 var(--ink);
   }
 
   .badge {
-    width: 3.3rem;
-    height: 3.3rem;
+    width: 3.6rem;
+    height: 3.6rem;
     flex-shrink: 0;
     display: grid;
     place-items: center;
@@ -68,36 +94,19 @@
   .text {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.15rem;
   }
 
   .title {
     font-family: var(--display);
-    font-size: 1.35rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  em {
-    font-style: normal;
-    font-family: var(--body);
-    font-size: 0.7rem;
-    font-weight: 800;
-    padding: 0.1rem 0.5rem;
-    border-radius: 999px;
-    background: var(--paper-2);
-    border: 1.5px solid var(--ink);
-  }
-
-  em.coop {
-    background: var(--yellow);
+    font-size: 1.3rem;
+    line-height: 1.1;
   }
 
   .tagline {
-    color: #4a3f38;
-    font-size: 0.92rem;
-    line-height: 1.3;
+    color: var(--ink-2);
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.25;
   }
 </style>

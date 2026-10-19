@@ -17,12 +17,13 @@
 </script>
 
 <div class="home">
-  <Pastille size="min(56vw, 13rem)" animated />
-  <Wordmark size="1.8rem" lines={2} />
+  <div class="logo"><Pastille size="min(56vw, 13rem)" animated /></div>
+  <Wordmark size="2.2rem" lines={2} animated />
   <form onsubmit={submit}>
     <label for="code">{invalid ? 'Ce lien n’est pas valide. Tape le code affiché sur la télé :' : 'Code affiché sur la télé'}</label>
     <input
       id="code"
+      class="field"
       bind:value
       maxlength="4"
       autocomplete="off"
@@ -49,6 +50,11 @@
     text-align: center;
   }
 
+  .logo {
+    animation: float 5s ease-in-out infinite;
+    filter: drop-shadow(0.25rem 0.3rem 0 var(--ink));
+  }
+
   form {
     width: 100%;
     max-width: 20rem;
@@ -59,25 +65,16 @@
 
   label {
     font-weight: 800;
-    color: var(--muted);
+    color: var(--ink);
     line-height: 1.35;
   }
 
-  input {
-    padding: 0.8rem;
-    border-radius: 1rem;
-    border: 3px solid var(--ink);
-    background: var(--cream);
-    color: var(--ink);
+  #code {
     font-family: var(--display);
+    font-weight: 400;
     font-size: 2.2rem;
     letter-spacing: 0.4em;
     text-align: center;
     text-transform: uppercase;
-    outline: none;
-  }
-
-  input:focus {
-    box-shadow: 0 0 0 3px var(--yellow);
   }
 </style>

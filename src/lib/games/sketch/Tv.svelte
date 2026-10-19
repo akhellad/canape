@@ -4,16 +4,14 @@
   import { backOut } from 'svelte/easing';
   import type { Seats } from '../../room/protocol';
   import Blob from '../../ui/Blob.svelte';
-  import Icon from '../../ui/Icon.svelte';
   import { other, type Slot } from '../types';
-  import { MODES, type SketchTv } from './logic';
+  import type { SketchTv } from './logic';
   import Pattern from './Pattern.svelte';
   import { drawStroke, prepare, redraw } from './render';
-  import Timer from './Timer.svelte';
+  import Timer from '../../ui/Timer.svelte';
 
   let { view, seats }: { view: SketchTv; seats: Seats } = $props();
   const name = (slot: Slot) => seats[slot]?.name ?? `Joueur ${slot + 1}`;
-  const mode = $derived(MODES[view.mode]);
   const levels = ['', 'Facile', 'Moyen', 'Difficile'];
 
   let canvas: HTMLCanvasElement;
@@ -36,7 +34,7 @@
     const known = new Set(strokes.map((stroke) => stroke.id));
     const stale = [...drawn.keys()].some((id) => !known.has(id));
     const shrunk = strokes.some((stroke) => (drawn.get(stroke.id) ?? 0) > stroke.points.length / 2);
-    if (stale || shrunk || view.mode === 'straight' || resized !== lastResize) {
+    if (stale || shrunk || resized !== lastResize) {
       lastResize = resized;
       redraw(surface, strokes);
     } else {
@@ -53,19 +51,10 @@
   <aside class="left">
     <span class="round">Manche {view.round + 1} / {view.rounds}</span>
     <div class="drawer p{view.drawer}">
-      <Blob slot={view.drawer} size="3.4em" bounce={view.phase === 'draw'} />
-      <span><b>{name(view.drawer)}</b> dessine</span>
+      <Blob slot={view.drawer} size="4em" bounce={view.phase === 'draw'} />
+      <span><b class="name-tag">{name(view.drawer)}</b> dessine</span>
       <span class="sub">{name(other(view.drawer))} devine</span>
     </div>
-    {#key `${view.round}-${view.mode}`}
-      <div class="mode paper" class:special={view.mode !== 'normal'} in:scale={{ duration: 500, easing: backOut, start: 0.6 }}>
-        <Icon name={mode.icon} size="2.6em" />
-        <div>
-          <b>{mode.title}</b>
-          <p>{mode.description}</p>
-        </div>
-      </div>
-    {/key}
     <div class="score">
       <span>Score d’équipe</span>
       <b>{view.score}</b>
@@ -78,13 +67,13 @@
       <canvas bind:this={canvas} aria-label="Dessin en cours"></canvas>
       {#if view.phase === 'choose'}
         <div class="overlay" in:fly={{ y: 20, duration: 300 }}>
-          <Icon name="thinking-face" size="4em" />
+          <Blob slot={view.drawer} size="4em" mood="wink" bounce />
           <p>{name(view.drawer)} choisit un mot…</p>
         </div>
       {:else if view.phase === 'reveal'}
         <div class="overlay result" class:success={view.success} in:scale={{ duration: 450, easing: backOut, start: 0.7 }}>
-          <Icon name={view.success ? 'party-popper' : 'loudly-crying-face'} size="4em" />
-          <p>{view.success ? 'Trouvé !' : 'Raté…'} C’était :</p>
+          <p class="verdict">{view.success ? 'Trouvé !' : 'Raté…'}</p>
+          <p>C’était :</p>
           <div class="answer"><Pattern pattern="" word={view.word} /></div>
           {#if view.success}<p class="points">+{view.points} points</p>{/if}
         </div>
@@ -117,7 +106,7 @@
     height: 100%;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    gap: 2em;
+    gap: 2.4em;
     align-items: center;
   }
 
@@ -125,7 +114,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1.1em;
+    gap: 1.4em;
     justify-content: center;
   }
 
@@ -141,61 +130,48 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--muted);
   }
 
   .drawer {
     display: flex;
     flex-direction: column;
-    gap: 0.3em;
+    gap: 0.4em;
     font-size: 1.3em;
+    font-weight: 700;
   }
 
   .drawer b {
     font-family: var(--display);
     font-size: 1.4em;
     font-weight: 400;
-    color: var(--pc);
   }
 
   .sub {
-    color: var(--muted);
-    font-weight: 800;
-  }
-
-  .mode {
-    display: flex;
-    align-items: center;
-    gap: 0.8em;
-    padding: 0.9em 1em;
-    max-width: 22em;
-  }
-
-  .mode.special {
-    background: var(--yellow);
-    animation: wiggle 0.6s ease-in-out 2;
-  }
-
-  .mode b {
-    font-family: var(--display);
-    font-size: 1.5em;
-    font-weight: 400;
-  }
-
-  .mode p {
-    line-height: 1.3;
+    color: var(--ink-2);
+    font-weight: 700;
   }
 
   .score {
     display: flex;
     flex-direction: column;
+    padding: 0.7em 1.2em;
+    border-radius: 1em;
+    border: 0.15em solid var(--ink);
+    background: var(--butter);
+    box-shadow: var(--shadow);
+    transform: rotate(-2deg);
+    font-weight: 800;
   }
 
   .score b {
     font-family: var(--display);
-    font-size: 3em;
+    font-size: 3.4em;
     font-weight: 400;
-    color: var(--yellow);
+    line-height: 1.1;
+  }
+
+  .score .sub {
+    color: var(--ink);
   }
 
   .board {
@@ -206,11 +182,13 @@
 
   .canvas-wrap {
     position: relative;
-    height: min(74vh, 46vw);
+    height: min(76vh, 46vw);
     aspect-ratio: 1;
     background: #fffdf7;
     overflow: hidden;
     border-width: 0.25em;
+    box-shadow: 0.45em 0.55em 0 var(--ink);
+    transform: rotate(-0.6deg);
   }
 
   canvas {
@@ -226,8 +204,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.6em;
-    background: rgba(251, 246, 236, 0.85);
+    gap: 0.5em;
+    background: rgba(255, 243, 230, 0.9);
     color: var(--ink);
     font-family: var(--display);
     font-size: 1.8em;
@@ -235,12 +213,22 @@
   }
 
   .overlay.result {
-    background: rgba(35, 26, 45, 0.82);
+    background: rgba(42, 12, 29, 0.86);
     color: var(--cream);
   }
 
   .overlay.result.success {
-    background: rgba(46, 110, 72, 0.88);
+    background: rgba(25, 180, 138, 0.92);
+  }
+
+  .verdict {
+    font-size: 1.6em;
+    color: var(--cream);
+    -webkit-text-stroke: 0.04em var(--ink);
+    paint-order: stroke fill;
+    text-shadow: 0.05em 0.06em 0 var(--ink);
+    --tilt: -4deg;
+    animation: stamp 0.6s var(--snap) both;
   }
 
   .answer {
@@ -248,8 +236,7 @@
   }
 
   .points {
-    color: var(--yellow);
-    font-size: 1.3em;
+    font-size: 1.1em;
   }
 
   .hint {
@@ -274,7 +261,7 @@
     max-width: 20em;
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
+    gap: 0.6em;
   }
 
   .guesses li {
@@ -283,20 +270,24 @@
     justify-content: space-between;
     gap: 0.6em;
     padding: 0.5em 0.9em;
-    border-radius: 1em 1em 1em 0.3em;
-    background: var(--plum-2);
-    border: 0.12em solid var(--plum-3);
+    border-radius: 1em 1em 1em 0.2em;
+    background: var(--cream);
+    border: 0.13em solid var(--ink);
+    box-shadow: var(--shadow-sm);
     font-weight: 800;
     font-size: 1.2em;
   }
 
+  .guesses li:nth-child(even) {
+    transform: rotate(1deg);
+  }
+
   .guesses li.near {
-    border-color: var(--orange);
+    background: var(--tangerine);
   }
 
   .guesses em {
     font-style: normal;
-    color: var(--orange);
     font-size: 0.85em;
     white-space: nowrap;
   }
