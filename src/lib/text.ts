@@ -38,3 +38,14 @@ export function sanitizeName(raw: unknown, fallback: string): string {
 export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count} ${count > 1 ? pluralForm : singular}`;
 }
+
+/** A one-line answer typed on a phone: no control characters, single spaces, capped length. */
+export function cleanLine(raw: unknown, max: number): string {
+  if (typeof raw !== 'string') return '';
+  return raw
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max)
+    .trim();
+}

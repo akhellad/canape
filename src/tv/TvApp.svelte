@@ -47,6 +47,14 @@
         writeJson(STORAGE_KEYS.seen, all);
       },
     },
+    settings: {
+      load: (game) => readJson<Record<string, unknown>>(STORAGE_KEYS.settings, {})[game],
+      save: (game, settings) => {
+        const all = readJson<Record<string, unknown>>(STORAGE_KEYS.settings, {});
+        all[game] = settings;
+        writeJson(STORAGE_KEYS.settings, all);
+      },
+    },
   });
 
   const snapshot = $derived.by(() => {
@@ -148,7 +156,7 @@
         {:else if stage.kind === 'menu'}
           <Menu />
         {:else if stage.kind === 'rules'}
-          <Rules game={stage.game} ready={stage.ready} seats={snapshot.seats} />
+          <Rules game={stage.game} ready={stage.ready} settings={stage.settings} seats={snapshot.seats} />
         {:else if stage.kind === 'countdown'}
           <Countdown game={stage.game} until={stage.until} />
         {:else if stage.view}

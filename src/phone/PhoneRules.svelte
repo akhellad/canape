@@ -1,17 +1,30 @@
 <script lang="ts">
   import { CATALOG } from '../lib/games/catalog';
+  import type { Settings, SettingValue } from '../lib/games/settings';
   import { other, type GameId, type Slot } from '../lib/games/types';
   import type { Seats } from '../lib/room/protocol';
   import GameArt from '../lib/ui/GameArt.svelte';
+  import SettingsEditor from './SettingsEditor.svelte';
 
   let {
     game,
     ready,
+    settings,
     slot,
     seats,
     onready,
     onback,
-  }: { game: GameId; ready: [boolean, boolean]; slot: Slot; seats: Seats; onready: () => void; onback: () => void } = $props();
+    onset,
+  }: {
+    game: GameId;
+    ready: [boolean, boolean];
+    settings: Settings;
+    slot: Slot;
+    seats: Seats;
+    onready: () => void;
+    onback: () => void;
+    onset: (key: string, value: SettingValue) => void;
+  } = $props();
 
   const definition = $derived(CATALOG[game]);
   const partner = $derived(seats[other(slot)]?.name ?? 'l’autre');
@@ -27,6 +40,9 @@
       <li><span>{index + 1}</span>{rule}</li>
     {/each}
   </ol>
+  {#if definition.settings?.length}
+    <SettingsEditor defs={definition.settings} {settings} {onset} />
+  {/if}
   <div class="actions">
     {#if ready[slot]}
       <p class="wait">{ready[other(slot)] ? 'C’est parti !' : `Prêt ! On attend ${partner}…`}</p>

@@ -8,6 +8,7 @@
   import { PEOPLE } from './people';
 
   let { view, seats }: { view: GuessWhoTv; seats: Seats } = $props();
+  const people = $derived(view.board.map((index) => PEOPLE[index]));
   const name = (slot: Slot) => seats[slot]?.name ?? `Joueur ${slot + 1}`;
 </script>
 
@@ -40,7 +41,7 @@
           {#key view.left[slot]}<span class="sticker left" in:slap>{view.left[slot]} suspect{view.left[slot] > 1 ? 's' : ''}</span>{/key}
         </header>
         <div class="grid">
-          {#each PEOPLE as person, index (person.name)}
+          {#each people as person, index (person.name)}
             {@const down = view.down[slot][index]}
             {@const accused = view.guess?.by === slot && view.guess.person === index}
             <div class="card" class:down class:accused class:right={accused && view.guess?.correct}>
@@ -58,7 +59,7 @@
   {#if view.phase === 'over' && view.secrets}
     <div class="reveal">
       {#each SLOTS as slot (slot)}
-        {@const person = PEOPLE[view.secrets[slot]]}
+        {@const person = people[view.secrets[slot]]}
         <div class="secret paper p{slot}" in:flipIn={{ delay: 300 + slot * 300 }}>
           <span class="whose">{name(slot)} était</span>
           <Face {person} size="7em" />

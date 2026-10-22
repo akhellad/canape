@@ -1,43 +1,49 @@
 import { battleship } from './battleship/logic';
+import { bluff } from './bluff/logic';
 import { connect4 } from './connect4/logic';
 import { couple } from './couple/logic';
+import { crossword } from './crossword/logic';
 import { guesswho } from './guesswho/logic';
-import { mastermind } from './mastermind/logic';
-import { memory } from './memory/logic';
+import { heart } from './heart/logic';
+import { memories } from './memories/logic';
 import { petitbac } from './petitbac/logic';
 import { quiz } from './quiz/logic';
-import { reversi } from './reversi/logic';
 import { sketch } from './sketch/logic';
-import { taboo } from './taboo/logic';
+import { sweet } from './sweet/logic';
+import { telephone } from './telephone/logic';
+import { wavelength } from './wavelength/logic';
 import type { GameDefinition, GameId } from './types';
-import { yams } from './yams/logic';
 
 export const CATALOG: Readonly<Record<GameId, GameDefinition>> = {
   sketch,
+  telephone,
   couple,
-  taboo,
+  memories,
+  sweet,
+  wavelength,
+  heart,
   quiz,
   petitbac,
+  crossword,
+  bluff,
   guesswho,
-  mastermind,
   battleship,
   connect4,
-  reversi,
-  yams,
-  memory,
 };
 
 export const GAME_ORDER: GameId[] = [
   'sketch',
+  'telephone',
   'couple',
-  'taboo',
+  'wavelength',
+  'memories',
+  'sweet',
+  'crossword',
+  'heart',
   'quiz',
   'petitbac',
+  'bluff',
   'guesswho',
-  'mastermind',
   'battleship',
   'connect4',
-  'reversi',
-  'yams',
-  'memory',
 ];

@@ -1,16 +1,37 @@
 import { isInt, isRecord, SLOTS, type GameContext, type GameDefinition, type GameInstance, type Slot, type TimerHandle } from '../types';
+import { choiceOf, resolveSettings, type SettingDef } from '../settings';
 import { QUESTIONS, type Question } from './questions';
 
 export const QUESTION_COUNT = 10;
 export const ANSWER_SECONDS = 20;
 const BASE_POINTS = 10;
 const SPEED_POINTS = 10;
+/** Extra points for whoever finds the right answer first. */
+export const FIRST_POINTS = 15;
+
+export const QUIZ_SETTINGS: readonly SettingDef[] = [
+  {
+    id: 'count',
+    label: 'Questions',
+    kind: 'choice',
+    options: [5, 10, 15, 20].map((value) => ({ value, label: `${value}` })),
+    default: QUESTION_COUNT,
+  },
+  {
+    id: 'time',
+    label: 'Temps pour répondre',
+    kind: 'choice',
+    options: [10, 15, 20, 30].map((value) => ({ value, label: `${value} s` })),
+    default: ANSWER_SECONDS,
+  },
+];
 const BOTH_ANSWERED_DELAY_MS = 900;
 const REVEAL_MS = 5200;
 
 export interface QuizPick {
   choice: number;
   points: number;
+  first: boolean;
 }
 
 export interface QuizTv {
@@ -40,6 +61,7 @@ export interface QuizPhone {
   mine: number | null;
   answer: number | null;
   points: number | null;
+  first: boolean;
   scores: [number, number];
   remaining: number;
   guard: string;
@@ -53,18 +75,24 @@ class Quiz implements GameInstance {
   private answer = 0;
   private picks: [{ choice: number; at: number } | null, { choice: number; at: number } | null] = [null, null];
   private gained: [number, number] = [0, 0];
+  private first: Slot | null = null;
   private readonly scores: [number, number] = [0, 0];
   private startedAt = 0;
   private deadline = 0;
   private timer: TimerHandle | null = null;
   private tick: TimerHandle | null = null;
+  private readonly count: number;
+  private readonly seconds: number;
 
   constructor(private readonly ctx: GameContext) {
+    const settings = resolveSettings(QUIZ_SETTINGS, ctx.settings, ctx.rng);
+    this.count = choiceOf(settings, 'count');
+    this.seconds = choiceOf(settings, 'time');
     this.ask();
   }
 
   private get bonus(): boolean {
-    return this.index === QUESTION_COUNT - 1;
+    return this.index === this.count - 1;
   }
 
   private ask(): void {
@@ -73,11 +101,12 @@ class Quiz implements GameInstance {
     this.answer = this.choices.indexOf(this.question.answer);
     this.picks = [null, null];
     this.gained = [0, 0];
+    this.first = null;
     this.phase = 'question';
     this.startedAt = this.ctx.now();
-    this.deadline = this.startedAt + ANSWER_SECONDS * 1000;
+    this.deadline = this.startedAt + this.seconds * 1000;
     this.ctx.cancel(this.timer);
-    this.timer = this.ctx.after(ANSWER_SECONDS * 1000, () => this.reveal());
+    this.timer = this.ctx.after(this.seconds * 1000, () => this.reveal());
     this.scheduleTick();
     this.ctx.fx('turn', 'all');
     this.ctx.update();
@@ -111,11 +140,14 @@ class Quiz implements GameInstance {
     this.ctx.cancel(this.tick);
     this.phase = 'reveal';
     const multiplier = this.bonus ? 2 : 1;
-    for (const slot of SLOTS) {
-      const pick = this.picks[slot];
-      if (!pick || pick.choice !== this.answer) continue;
-      const left = Math.max(0, this.deadline - pick.at) / (ANSWER_SECONDS * 1000);
-      this.gained[slot] = (BASE_POINTS + Math.round(SPEED_POINTS * left)) * multiplier;
+    const right = SLOTS.filter((slot) => this.picks[slot]?.choice === this.answer).sort((x, y) => this.picks[x]!.at - this.picks[y]!.at);
+    // A dead heat earns nobody the bonus: it rewards being faster, not as fast.
+    const tie = right.length === 2 && this.picks[0]!.at === this.picks[1]!.at;
+    this.first = right.length && !tie ? right[0] : null;
+    for (const slot of right) {
+      const left = Math.max(0, this.deadline - this.picks[slot]!.at) / (this.seconds * 1000);
+      const firstBonus = this.first === slot ? FIRST_POINTS : 0;
+      this.gained[slot] = (BASE_POINTS + Math.round(SPEED_POINTS * left) + firstBonus) * multiplier;
       this.scores[slot] += this.gained[slot];
     }
     this.ctx.fx('reveal', 'all');
@@ -126,7 +158,7 @@ class Quiz implements GameInstance {
 
   private next(): void {
     this.index += 1;
-    if (this.index < QUESTION_COUNT) {
+    if (this.index < this.count) {
       this.ask();
       return;
     }
@@ -150,7 +182,7 @@ class Quiz implements GameInstance {
     return {
       phase: this.phase,
       index: this.index,
-      count: QUESTION_COUNT,
+      count: this.count,
       bonus: this.bonus,
       category: this.question.category,
       text: this.question.text,
@@ -159,13 +191,13 @@ class Quiz implements GameInstance {
       locked: [this.picks[0] !== null, this.picks[1] !== null],
       picks: reveal
         ? [
-            this.picks[0] ? { choice: this.picks[0].choice, points: this.gained[0] } : null,
-            this.picks[1] ? { choice: this.picks[1].choice, points: this.gained[1] } : null,
+            this.picks[0] ? { choice: this.picks[0].choice, points: this.gained[0], first: this.first === 0 } : null,
+            this.picks[1] ? { choice: this.picks[1].choice, points: this.gained[1], first: this.first === 1 } : null,
           ]
         : null,
       scores: [...this.scores] as [number, number],
       remaining: this.remaining(),
-      total: ANSWER_SECONDS,
+      total: this.seconds,
     };
   }
 
@@ -175,13 +207,14 @@ class Quiz implements GameInstance {
       phase: this.phase,
       me: slot,
       index: this.index,
-      count: QUESTION_COUNT,
+      count: this.count,
       bonus: this.bonus,
       text: this.question.text,
       choices: this.choices,
       mine: this.picks[slot]?.choice ?? null,
       answer: reveal ? this.answer : null,
       points: reveal ? this.gained[slot] : null,
+      first: reveal && this.first === slot,
       scores: [...this.scores] as [number, number],
       remaining: this.remaining(),
       guard: `${this.index}-${this.phase}`,
@@ -192,13 +225,14 @@ class Quiz implements GameInstance {
 export const quiz: GameDefinition = {
   id: 'quiz',
   title: 'Quiz',
-  tagline: 'Dix questions de culture G, le plus rapide rafle les points.',
+  tagline: 'De la culture G, et le premier qui trouve rafle les points.',
   accent: '#3b46ff',
   coop: false,
   rules: [
-    `Une question s’affiche sur la télé, avec quatre réponses. Choisis la tienne sur ton téléphone, tu as ${ANSWER_SECONDS} secondes.`,
-    'Bonne réponse : 10 points, plus un bonus de rapidité. Mauvaise réponse : rien.',
-    `La dernière des ${QUESTION_COUNT} questions compte double. Le plus gros score gagne !`,
+    'Une question s’affiche sur la télé, avec quatre réponses. Choisis la tienne sur ton téléphone avant la fin du temps.',
+    `Bonne réponse : 10 points, plus un bonus de rapidité. Le premier à trouver la bonne réponse gagne ${FIRST_POINTS} points de plus. Mauvaise réponse : rien.`,
+    'La dernière question compte double. Le plus gros score gagne !',
   ],
+  settings: QUIZ_SETTINGS,
   create: (ctx) => new Quiz(ctx),
 };

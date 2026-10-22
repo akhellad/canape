@@ -15,6 +15,74 @@
         <path d="M50 66 59 84 68 66Z" fill="#ffe9d6" />
         <path d="M56 78 59 84 62 78Z" fill="#2a0c1d" stroke-width="2" />
       </g>
+    {:else if game === 'telephone'}
+      <rect x="8" y="18" width="40" height="50" rx="5" fill="#fff3e6" transform="rotate(-8 28 43)" />
+      <path d="M16 46c5-9 10 4 15-4s8 3 12-3" fill="none" stroke="#3b46ff" stroke-width="4" transform="rotate(-8 28 43)" />
+      <rect x="52" y="30" width="40" height="50" rx="5" fill="#ffd23d" transform="rotate(7 72 55)" />
+      <text
+        x="72"
+        y="64"
+        text-anchor="middle"
+        font-family="Shrikhand, serif"
+        font-size="26"
+        fill="#2a0c1d"
+        stroke="none"
+        transform="rotate(7 72 55)">?!</text
+      >
+      <path class="tool" d="M40 14q14-10 26 4" fill="none" stroke-width="4" />
+      <path class="tool" d="M60 12l7 6-9 3" fill="none" stroke-width="4" />
+    {:else if game === 'crossword'}
+      <g transform="rotate(-6 50 50)">
+        {#each [0, 1, 2, 3] as row (row)}
+          {#each [0, 1, 2, 3] as col (col)}
+            {@const black = [3, 6, 9, 12].includes(row * 4 + col)}
+            <rect x={14 + col * 18} y={14 + row * 18} width="18" height="18" fill={black ? '#2a0c1d' : '#fff3e6'} stroke-width="3" />
+          {/each}
+        {/each}
+        <text x="23" y="29" text-anchor="middle" font-family="Shrikhand, serif" font-size="13" fill="#3b46ff" stroke="none">A</text>
+        <text x="41" y="47" text-anchor="middle" font-family="Shrikhand, serif" font-size="13" fill="#3b46ff" stroke="none">M</text>
+        <text x="59" y="65" text-anchor="middle" font-family="Shrikhand, serif" font-size="13" fill="#3b46ff" stroke="none">I</text>
+      </g>
+      <g class="tool" transform="translate(4 -8) rotate(-40 74 60)">
+        <rect x="68" y="30" width="12" height="44" rx="2" fill="#ff5c9d" stroke-width="4" />
+        <path d="M68 74l6 12 6-12Z" fill="#ffe9d6" stroke-width="4" />
+      </g>
+    {:else if game === 'bluff'}
+      <g class="tool">
+        <path d="M16 18h60a8 8 0 0 1 8 8v34a8 8 0 0 1-8 8H44L28 82V68H16a8 8 0 0 1-8-8V26a8 8 0 0 1 8-8Z" fill="#fff3e6" />
+        <path d="M22 34h44M22 46h34" stroke-width="4" />
+      </g>
+      <path class="tool late" d="M58 58q10-16 24-8q8 6 4 16q-4 10-18 8q-8-2-10-16Z" fill="#ff7a2e" />
+      <path d="M64 62q4 4 10 2M68 56v0M78 58v0" fill="none" stroke-width="4" />
+    {:else if game === 'heart'}
+      <path class="tool" d={heart} transform="translate(50 52) scale(2.6)" fill="#e8213f" />
+      <text
+        x="50"
+        y="60"
+        text-anchor="middle"
+        font-family="Shrikhand, serif"
+        font-size="30"
+        fill="#fff3e6"
+        stroke="#2a0c1d"
+        stroke-width="3"
+        paint-order="stroke">?</text
+      >
+    {:else if game === 'memories'}
+      <g transform="rotate(-8 50 50)">
+        <rect x="18" y="12" width="56" height="66" rx="4" fill="#fff3e6" />
+        <rect x="25" y="19" width="42" height="40" fill="#b9a6ff" stroke-width="3" />
+        <path d="M25 52l12-12 10 9 8-7 12 11" fill="none" stroke-width="3" />
+      </g>
+      <path class="tool" d={heart} transform="translate(72 72) scale(1.1) rotate(12)" fill="#e8213f" />
+    {:else if game === 'sweet'}
+      <rect x="10" y="26" width="80" height="54" rx="6" fill="#fff3e6" />
+      <path d="M10 30l40 28 40-28" fill="none" />
+      <path class="tool" d={heart} transform="translate(50 30) scale(1.3)" fill="#ff5c9d" />
+    {:else if game === 'wavelength'}
+      <path d="M10 76A40 40 0 0 1 90 76Z" fill="#fff3e6" />
+      <path d="M50 76L66 42A40 40 0 0 1 78 54Z" fill="#e8213f" stroke-width="3" />
+      <path class="tool" d="M50 76L30 44" stroke-width="6" />
+      <circle cx="50" cy="76" r="6" fill="#3b46ff" />
     {:else if game === 'quiz'}
       <g class="tool">
         <path d="M18 16h64a8 8 0 0 1 8 8v40a8 8 0 0 1-8 8H46L30 86V72H18a8 8 0 0 1-8-8V24a8 8 0 0 1 8-8Z" fill="#3b46ff" />
@@ -33,12 +101,6 @@
     {:else if game === 'couple'}
       <path class="tool" d={heart} transform="translate(38 46) scale(1.7) rotate(-12)" fill="#3b46ff" />
       <path class="tool late" d={heart} transform="translate(62 56) scale(1.7) rotate(12)" fill="#ffd23d" />
-    {:else if game === 'taboo'}
-      <g class="tool">
-        <path d="M14 20h72a6 6 0 0 1 6 6v36a6 6 0 0 1-6 6H40L24 82V68H14a6 6 0 0 1-6-6V26a6 6 0 0 1 6-6Z" fill="#fff3e6" />
-        <path d="M28 44h44" stroke="#2a0c1d" stroke-width="5" />
-        <path d="M30 34 70 56M70 34 30 56" stroke="#e8213f" stroke-width="7" />
-      </g>
     {:else if game === 'connect4'}
       <rect x="10" y="22" width="80" height="66" rx="8" fill="#3b46ff" />
       {#each [0, 1, 2] as row (row)}
@@ -54,13 +116,6 @@
         {/each}
       {/each}
       <circle class="tool" cx="50" cy="11" r="8" fill="#ffd23d" stroke-width="3.5" />
-    {:else if game === 'reversi'}
-      <rect x="8" y="8" width="84" height="84" rx="10" fill="#19b48a" />
-      <path d="M50 8v84M8 50h84" stroke-width="3" />
-      <circle cx="29" cy="29" r="13" fill="#3b46ff" stroke-width="4" />
-      <circle cx="71" cy="71" r="13" fill="#3b46ff" stroke-width="4" />
-      <circle cx="29" cy="71" r="13" fill="#ffd23d" stroke-width="4" />
-      <g class="flip"><circle cx="71" cy="29" r="13" fill="#ffd23d" stroke-width="4" /></g>
     {:else if game === 'battleship'}
       <g class="tool">
         <path d="M24 30h10v16H24Z" fill="#ffe9d6" />
@@ -89,22 +144,6 @@
         stroke-width="3"
         paint-order="stroke">?</text
       >
-    {:else if game === 'mastermind'}
-      <rect x="8" y="22" width="84" height="56" rx="10" fill="#4a1534" />
-      {#each ['#d01a3b', '#ffd23d', '#2fd1a5', '#3b46ff'] as color, index (color)}
-        <circle
-          class="tool"
-          style:animation-delay={`${index * -0.3}s`}
-          cx={22 + index * 16}
-          cy="44"
-          r="7"
-          fill={color}
-          stroke-width="3.5"
-        />
-      {/each}
-      <circle cx="82" cy="38" r="3.5" fill="#fff3e6" stroke-width="2" />
-      <circle cx="82" cy="50" r="3.5" fill="none" stroke="#fff3e6" stroke-width="2" />
-      <path d="M18 64h64" stroke="#fff3e6" stroke-width="3" stroke-dasharray="6 6" />
     {:else if game === 'petitbac'}
       <rect x="16" y="8" width="62" height="80" rx="6" fill="#fff3e6" transform="rotate(5 47 48)" />
       <g transform="rotate(5 47 48)">
@@ -114,30 +153,6 @@
       <g class="tool" transform="translate(0 -14) rotate(-40 74 60)">
         <rect x="68" y="30" width="12" height="44" rx="2" fill="#ff7a2e" stroke-width="4" />
         <path d="M68 74l6 12 6-12Z" fill="#ffe9d6" stroke-width="4" />
-      </g>
-    {:else if game === 'yams'}
-      <g class="tool">
-        <rect x="10" y="30" width="44" height="44" rx="10" fill="#fff3e6" transform="rotate(-12 32 52)" />
-        <g transform="rotate(-12 32 52)" fill="#2a0c1d" stroke="none">
-          <circle cx="22" cy="42" r="4.5" /><circle cx="32" cy="52" r="4.5" /><circle cx="42" cy="62" r="4.5" />
-        </g>
-      </g>
-      <g class="tool late">
-        <rect x="48" y="18" width="42" height="42" rx="10" fill="#ffd23d" transform="rotate(14 69 39)" />
-        <g transform="rotate(14 69 39)" fill="#2a0c1d" stroke="none">
-          <circle cx="59" cy="29" r="4.5" /><circle cx="79" cy="29" r="4.5" /><circle cx="59" cy="49" r="4.5" /><circle
-            cx="79"
-            cy="49"
-            r="4.5"
-          />
-        </g>
-      </g>
-    {:else if game === 'memory'}
-      <rect x="10" y="16" width="38" height="56" rx="7" fill="#ff5c9d" transform="rotate(-10 29 44)" />
-      <path d={heart} transform="translate(28 44) rotate(-10) scale(0.8)" fill="#fff3e6" stroke-width="4" />
-      <g class="flip">
-        <rect x="52" y="24" width="38" height="56" rx="7" fill="#fff3e6" transform="rotate(8 71 52)" />
-        <path d="M71 36l5 10 11 1-8 8 2 11-10-6-10 6 2-11-8-8 11-1Z" fill="#ffd23d" stroke-width="3.5" transform="rotate(8 71 52)" />
       </g>
     {/if}
   </g>
@@ -165,12 +180,6 @@
     animation: art-draw 2.4s ease-in-out infinite;
   }
 
-  .animated .flip {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: art-flip 2.4s ease-in-out infinite;
-  }
-
   @keyframes art-wobble {
     0%,
     100% {
@@ -190,20 +199,6 @@
     60%,
     to {
       stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes art-flip {
-    0%,
-    40% {
-      scale: 1 1;
-    }
-    50% {
-      scale: 0.05 1;
-    }
-    60%,
-    100% {
-      scale: 1 1;
     }
   }
 </style>

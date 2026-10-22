@@ -5,7 +5,7 @@
   import Blob from '../../ui/Blob.svelte';
   import Icon from '../../ui/Icon.svelte';
   import { other, SLOTS, type Slot } from '../types';
-  import { FLEET, type BattleshipTv } from './logic';
+  import { FLEET, SPECIALS, WEAPON_NAMES, type BattleshipTv } from './logic';
   import Sea from './Sea.svelte';
 
   let { view, seats }: { view: BattleshipTv; seats: Seats } = $props();
@@ -14,16 +14,25 @@
   const headline = $derived.by(() => {
     if (view.phase === 'place') return 'Placez votre flotte en secret sur vos téléphones';
     if (view.phase === 'over' && view.winner !== null) return `${name(view.winner)} a coulé toute la flotte !`;
-    if (view.firing) return `${name(view.turn)} fait feu…`;
+    if (view.firing) {
+      if (view.weapon === 'sonar') return `${name(view.turn)} lance un sonar…`;
+      if (view.weapon === 'bomb') return `${name(view.turn)} largue une bombe…`;
+      if (view.weapon === 'torpedo') return `${name(view.turn)} lance une torpille…`;
+      return `${name(view.turn)} fait feu…`;
+    }
     return `${name(view.turn)} vise la flotte de ${name(other(view.turn))}`;
   });
 
   const shotText = $derived.by(() => {
     const last = view.last;
     if (!last) return null;
+    const again = last.again ? ` ${name(last.shooter)} rejoue !` : '';
+    if (last.result === 'scan') {
+      return { icon: 'water-wave' as const, text: `Sonar : ${last.count} case${last.count > 1 ? 's' : ''} de navire dans la zone` };
+    }
     if (last.result === 'miss') return { icon: 'water-wave' as const, text: 'À l’eau !' };
-    if (last.result === 'hit') return { icon: 'collision' as const, text: 'Touché !' };
-    return { icon: 'ship' as const, text: `Coulé ! Le ${last.ship} de ${name(last.target)}` };
+    if (last.result === 'hit') return { icon: 'collision' as const, text: `Touché${last.count > 1 ? ` ×${last.count}` : ''} !${again}` };
+    return { icon: 'ship' as const, text: `Coulé ! Le ${last.ship} de ${name(last.target)}.${again}` };
   });
 </script>
 
@@ -55,6 +64,8 @@
           <Sea
             shots={board.shots}
             ships={board.ships}
+            scans={board.scans}
+            zone={targeted ? view.zone : []}
             aim={targeted ? view.aim : null}
             firing={view.firing && view.firing.target === owner ? view.firing.cell : null}
             impact={view.last && view.last.target === owner ? view.last : null}
@@ -75,6 +86,13 @@
             </li>
           {/each}
         </ul>
+        {#if view.specials && view.phase !== 'place'}
+          <ul class="arsenal" aria-label="Armes spéciales restantes">
+            {#each SPECIALS as weapon (weapon)}
+              <li class:used={!view.arsenal[owner].includes(weapon)}>{WEAPON_NAMES[weapon]}</li>
+            {/each}
+          </ul>
+        {/if}
       </div>
     {/each}
   </div>
@@ -181,7 +199,7 @@
 
   .sea-wrap {
     position: relative;
-    width: min(48vh, 34vw);
+    width: min(42vh, 34vw);
   }
 
   .targeted .sea-wrap {
@@ -219,7 +237,7 @@
   }
 
   .ships {
-    width: min(48vh, 34vw);
+    width: min(42vh, 34vw);
     list-style: none;
     margin: 0;
     padding: 0;
@@ -241,6 +259,29 @@
     border-radius: 999px;
     background: var(--cream);
     border: 0.1em solid var(--ink);
+  }
+
+  .arsenal {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 0.5em;
+  }
+
+  .arsenal li {
+    padding: 0.15em 0.7em;
+    border-radius: 999px;
+    border: 0.12em solid var(--ink);
+    background: var(--butter);
+    color: var(--ink);
+    font-weight: 800;
+  }
+
+  .arsenal li.used {
+    background: var(--paper-2);
+    text-decoration: line-through;
+    opacity: 0.7;
   }
 
   .ships li.sunk {

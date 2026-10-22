@@ -67,7 +67,9 @@ export async function tapSettled(phone: Page, locator: Locator): Promise<void> {
 }
 
 export async function startGame(table: Table, title: string): Promise<void> {
-  await tapSettled(table.phones[0], table.phones[0].locator('.game', { hasText: title }));
+  const phone = table.phones[0];
+  // Match on the title only: taglines can mention other games' names.
+  await tapSettled(phone, phone.locator('.game').filter({ has: phone.locator('.title', { hasText: title }) }));
   for (const phone of table.phones) {
     await tapSettled(phone, phone.getByRole('button', { name: 'Je suis prêt !' }));
   }

@@ -3,11 +3,8 @@ import { couple, ROUNDS as COUPLE_ROUNDS, type CouplePhone, type CoupleTv } from
 import { PREFER_PROMPTS, WHO_PROMPTS } from '../../src/lib/games/couple/prompts';
 import { DeckHistory, type HistoryStore } from '../../src/lib/games/deck';
 import { QUESTIONS } from '../../src/lib/games/quiz/questions';
-import { ANSWER_SECONDS, QUESTION_COUNT, quiz, type QuizPhone, type QuizTv } from '../../src/lib/games/quiz/logic';
-import { flipsFor, initialBoard, legalMoves, reversi, SIZE, type ReversiTv } from '../../src/lib/games/reversi/logic';
+import { ANSWER_SECONDS, FIRST_POINTS, QUESTION_COUNT, quiz, type QuizPhone, type QuizTv } from '../../src/lib/games/quiz/logic';
 import { SKETCH_WORDS } from '../../src/lib/games/sketch/words';
-import { CARDS } from '../../src/lib/games/taboo/cards';
-import { taboo, TURN_SECONDS, TURNS, type TabooPhone, type TabooTv } from '../../src/lib/games/taboo/logic';
 import type { Slot } from '../../src/lib/games/types';
 import { createRng } from '../../src/lib/random';
 import { createTestContext } from './helpers';
@@ -48,8 +45,6 @@ describe('Banques de contenu', () => {
     expect(new Set(QUESTIONS.map((q) => q.text)).size).toBe(QUESTIONS.length);
     for (const q of QUESTIONS) expect(new Set([q.answer, ...q.wrong]).size).toBe(4);
     expect(WHO_PROMPTS.length + PREFER_PROMPTS.length).toBeGreaterThan(300);
-    expect(CARDS.length).toBeGreaterThan(350);
-    expect(new Set(CARDS.map((card) => card.word.toLowerCase())).size).toBe(CARDS.length);
   });
 });
 
@@ -79,6 +74,43 @@ describe('Quiz', () => {
     const [fast, slow] = tv().scores;
     expect(fast).toBeGreaterThan(slow);
     expect(slow).toBeGreaterThanOrEqual(10);
+  });
+
+  it('gives the first right answer a bonus, even a fraction of a second ahead', () => {
+    const { game, tv, phone, test } = setup();
+    const question = QUESTIONS.find((q) => q.text === tv().text)!;
+    const right = tv().choices.indexOf(question.answer);
+    test.clock.advance(5000);
+    game.act(1, { type: 'answer', choice: right });
+    test.clock.advance(1);
+    game.act(0, { type: 'answer', choice: right });
+    test.clock.advance(1000);
+    const [late, early] = tv().scores;
+    expect(early - late).toBeGreaterThanOrEqual(FIRST_POINTS);
+    expect(tv().picks?.[1]?.first).toBe(true);
+    expect(tv().picks?.[0]?.first).toBe(false);
+    expect(phone(1).first).toBe(true);
+  });
+
+  it('gives the bonus to the only right answer, never to a wrong one', () => {
+    const { game, tv, test } = setup();
+    const question = QUESTIONS.find((q) => q.text === tv().text)!;
+    const right = tv().choices.indexOf(question.answer);
+    game.act(0, { type: 'answer', choice: (right + 1) % 4 });
+    game.act(1, { type: 'answer', choice: right });
+    test.clock.advance(1000);
+    expect(tv().picks?.[0]).toMatchObject({ points: 0, first: false });
+    expect(tv().picks?.[1]?.first).toBe(true);
+  });
+
+  it('follows the chosen question count and answer time', () => {
+    const test = createTestContext({ seed: 4, settings: { count: 5, time: 10 } });
+    const game = quiz.create(test.ctx);
+    const tv = () => game.tv() as QuizTv;
+    expect(tv().count).toBe(5);
+    expect(tv().total).toBe(10);
+    for (let i = 0; i < 5; i++) test.clock.advance(10_000 + 6000);
+    expect(test.results).toHaveLength(1);
   });
 
   it('plays all questions without repeats and doubles the last one', () => {
@@ -136,79 +168,5 @@ describe('Qui de nous deux ?', () => {
     expect(kinds).toContain('prefer');
     expect(kinds).toContain('who');
     expect(test.results[0].coop).toEqual({ won: true, score: COUPLE_ROUNDS });
-  });
-});
-
-describe('Mots interdits', () => {
-  function setup() {
-    const test = createTestContext({ seed: 6, starter: 0 });
-    const game = taboo.create(test.ctx);
-    return { test, game, tv: () => game.tv() as TabooTv, phone: (slot: Slot) => game.phone(slot) as TabooPhone };
-  }
-
-  it('shows the card only to the describer and scores found words', () => {
-    const { game, tv, phone } = setup();
-    game.act(1, { type: 'start' });
-    expect(tv().phase).toBe('ready');
-    game.act(0, { type: 'start' });
-    const card = phone(0);
-    if (card.role !== 'describer' || !card.card) throw new Error('expected describer card');
-    expect(card.card.forbidden).toHaveLength(4);
-    expect(JSON.stringify(tv())).not.toContain(card.card.word);
-    expect(phone(1).role).toBe('guesser');
-    game.act(1, { type: 'found' });
-    expect(tv().score).toBe(0);
-    game.act(0, { type: 'found' });
-    game.act(0, { type: 'pass' });
-    game.act(1, { type: 'buzz' });
-    expect(tv().score).toBe(1);
-    expect(tv().resolved.map((item) => item.outcome)).toEqual(['found', 'pass', 'buzz']);
-  });
-
-  it('alternates describers over the turns and finishes', () => {
-    const { game, tv, test } = setup();
-    const describers: Slot[] = [];
-    for (let turn = 0; turn < TURNS; turn++) {
-      const current = tv().describer;
-      describers.push(current);
-      game.act(current, { type: 'start' });
-      for (let i = 0; i < 5; i++) game.act(current, { type: 'found' });
-      test.clock.advance(TURN_SECONDS * 1000);
-      expect(tv().phase).toBe('summary');
-      test.clock.advance(5000);
-    }
-    expect(describers).toEqual([0, 1, 0, 1]);
-    expect(test.results[0].coop).toEqual({ won: true, score: 20 });
-  });
-});
-
-describe('Reversi', () => {
-  it('starts with four legal moves and flips the sandwiched discs', () => {
-    const board = initialBoard();
-    expect(legalMoves(board, 0)).toHaveLength(4);
-    const move = legalMoves(board, 0)[0];
-    expect(flipsFor(board, move, 0)).toHaveLength(1);
-    expect(flipsFor(board, 0, 0)).toHaveLength(0);
-  });
-
-  it('plays a whole game with legal moves only and declares the winner by count', () => {
-    const test = createTestContext({ seed: 1, starter: 0 });
-    const game = reversi.create(test.ctx);
-    const tv = () => game.tv() as ReversiTv;
-    game.act(0, { type: 'place', cell: 0 });
-    expect(tv().last).toBeNull();
-    let guard = 0;
-    while (tv().phase === 'play' && guard++ < 100) {
-      const { turn, moves, last } = tv();
-      game.act(turn === 0 ? 1 : 0, { type: 'place', cell: moves[0] });
-      expect(tv().last).toEqual(last);
-      game.act(turn, { type: 'place', cell: moves[moves.length - 1] });
-      expect(tv().last?.cell).toBe(moves[moves.length - 1]);
-    }
-    expect(tv().phase).toBe('over');
-    const [a, b] = tv().counts;
-    expect(a + b).toBeLessThanOrEqual(SIZE * SIZE);
-    test.clock.advance(3000);
-    expect(test.results[0].winner).toBe(a === b ? null : a > b ? 0 : 1);
   });
 });

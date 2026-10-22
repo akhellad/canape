@@ -156,10 +156,12 @@
           <PhoneRules
             game={screen.game}
             ready={screen.ready}
+            settings={screen.settings}
             slot={screen.slot}
             seats={screen.seats}
             onready={() => command({ op: 'ready' })}
             onback={() => command({ op: 'back' })}
+            onset={(key, value) => command({ op: 'set', key, value })}
           />
         {:else if screen.kind === 'countdown'}
           <div class="center">

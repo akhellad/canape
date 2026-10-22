@@ -1,6 +1,7 @@
+import type { Settings } from '../games/settings';
 import { isRecord, type FxEvent, type GameId, type GameResult, type Slot } from '../games/types';
 
-export const PROTOCOL = 1;
+export const PROTOCOL = 2;
 
 export interface SeatInfo {
   name: string;
@@ -13,7 +14,7 @@ export type Seats = [SeatInfo | null, SeatInfo | null];
 export type ScreenBody =
   | { kind: 'lobby' }
   | { kind: 'menu' }
-  | { kind: 'rules'; game: GameId; ready: [boolean, boolean] }
+  | { kind: 'rules'; game: GameId; ready: [boolean, boolean]; settings: Settings }
   | { kind: 'countdown'; game: GameId }
   | { kind: 'playing'; game: GameId; view: unknown; paused: boolean }
   | { kind: 'result'; game: GameId; result: GameResult };
@@ -25,7 +26,13 @@ export type PhoneScreen = ScreenBody & {
 };
 
 export type RoomCommand =
-  { op: 'pick'; game: GameId } | { op: 'ready' } | { op: 'back' } | { op: 'again' } | { op: 'menu' } | { op: 'quit' };
+  | { op: 'pick'; game: GameId }
+  | { op: 'set'; key: string; value: unknown }
+  | { op: 'ready' }
+  | { op: 'back' }
+  | { op: 'again' }
+  | { op: 'menu' }
+  | { op: 'quit' };
 
 export type ClientMessage =
   | { t: 'hello'; protocol: number; clientId: string; name: string }
@@ -39,7 +46,7 @@ export type HostMessage =
   | { t: 'rejected'; reason: 'full' | 'protocol' }
   | { t: 'ping'; at: number };
 
-const OPS = new Set(['pick', 'ready', 'back', 'again', 'menu', 'quit']);
+const OPS = new Set(['pick', 'set', 'ready', 'back', 'again', 'menu', 'quit']);
 
 export function parseClientMessage(data: unknown): ClientMessage | null {
   if (!isRecord(data) || typeof data.t !== 'string') return null;
@@ -52,6 +59,7 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
       const cmd = data.cmd;
       if (!isRecord(cmd) || typeof cmd.op !== 'string' || !OPS.has(cmd.op)) return null;
       if (cmd.op === 'pick') return typeof cmd.game === 'string' ? { t: 'room', cmd: { op: 'pick', game: cmd.game as GameId } } : null;
+      if (cmd.op === 'set') return typeof cmd.key === 'string' ? { t: 'room', cmd: { op: 'set', key: cmd.key, value: cmd.value } } : null;
       return { t: 'room', cmd: { op: cmd.op } as RoomCommand };
     }
     case 'game':

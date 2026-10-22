@@ -1,10 +1,12 @@
 import { isInt, isRecord, other, type GameContext, type GameDefinition, type GameInstance, type Slot } from '../types';
-import { PEOPLE } from './people';
+import { BOARD_SIZE, PEOPLE } from './people';
 
 const FINISH_DELAY_MS = 3200;
 
+/** Suspects are positions on `board`, which holds indexes into PEOPLE. */
 export interface GuessWhoTv {
   phase: 'play' | 'over';
+  board: number[];
   turn: Slot;
   turns: number;
   down: [boolean[], boolean[]];
@@ -16,6 +18,7 @@ export interface GuessWhoTv {
 
 export interface GuessWhoPhone {
   phase: 'play' | 'over';
+  board: number[];
   me: Slot;
   myTurn: boolean;
   turns: number;
@@ -33,14 +36,17 @@ class GuessWho implements GameInstance {
   private turn: Slot;
   private turns = 0;
   private readonly secrets: [number, number];
-  private readonly down: [boolean[], boolean[]] = [PEOPLE.map(() => false), PEOPLE.map(() => false)];
+  private readonly board: number[];
+  private readonly down: [boolean[], boolean[]];
   private guess: GuessWhoTv['guess'] = null;
   private winner: Slot | null = null;
 
   constructor(private readonly ctx: GameContext) {
     this.turn = ctx.starter;
-    const first = ctx.rng.int(PEOPLE.length);
-    let second = ctx.rng.int(PEOPLE.length - 1);
+    this.board = ctx.rng.shuffle(PEOPLE.map((_, index) => index)).slice(0, BOARD_SIZE);
+    this.down = [this.board.map(() => false), this.board.map(() => false)];
+    const first = ctx.rng.int(BOARD_SIZE);
+    let second = ctx.rng.int(BOARD_SIZE - 1);
     if (second >= first) second += 1;
     this.secrets = [first, second];
     ctx.fx('turn', [this.turn]);
@@ -48,7 +54,7 @@ class GuessWho implements GameInstance {
 
   act(slot: Slot, action: unknown): void {
     if (this.phase !== 'play' || !isRecord(action) || typeof action.type !== 'string') return;
-    if (action.type === 'toggle' && isInt(action.person, 0, PEOPLE.length - 1)) {
+    if (action.type === 'toggle' && isInt(action.person, 0, BOARD_SIZE - 1)) {
       this.down[slot][action.person] = !this.down[slot][action.person];
       this.ctx.fx('flip', [slot]);
       this.ctx.update();
@@ -60,7 +66,7 @@ class GuessWho implements GameInstance {
       this.turns += 1;
       this.ctx.fx('turn', [this.turn]);
       this.ctx.update();
-    } else if (action.type === 'guess' && isInt(action.person, 0, PEOPLE.length - 1)) {
+    } else if (action.type === 'guess' && isInt(action.person, 0, BOARD_SIZE - 1)) {
       const correct = action.person === this.secrets[other(slot)];
       this.guess = { by: slot, person: action.person, correct };
       this.phase = 'over';
@@ -73,12 +79,16 @@ class GuessWho implements GameInstance {
         this.ctx.finish({
           winner,
           title: correct
-            ? `${this.ctx.name(winner)} a démasqué ${PEOPLE[this.secrets[loser]].name} !`
+            ? `${this.ctx.name(winner)} a démasqué ${this.person(this.secrets[loser])} !`
             : `Raté, ${this.ctx.name(slot)} s’est trompé !`,
-          detail: `${this.ctx.name(0)} était ${PEOPLE[this.secrets[0]].name}, ${this.ctx.name(1)} était ${PEOPLE[this.secrets[1]].name}.`,
+          detail: `${this.ctx.name(0)} était ${this.person(this.secrets[0])}, ${this.ctx.name(1)} était ${this.person(this.secrets[1])}.`,
         }),
       );
     }
+  }
+
+  private person(position: number): string {
+    return PEOPLE[this.board[position]].name;
   }
 
   private left(slot: Slot): number {
@@ -88,6 +98,7 @@ class GuessWho implements GameInstance {
   tv(): GuessWhoTv {
     return {
       phase: this.phase,
+      board: this.board,
       turn: this.turn,
       turns: this.turns,
       down: [[...this.down[0]], [...this.down[1]]],
@@ -101,6 +112,7 @@ class GuessWho implements GameInstance {
   phone(slot: Slot): GuessWhoPhone {
     return {
       phase: this.phase,
+      board: this.board,
       me: slot,
       myTurn: this.phase === 'play' && slot === this.turn,
       turns: this.turns,
@@ -122,7 +134,7 @@ export const guesswho: GameDefinition = {
   accent: '#ffc4dc',
   coop: false,
   rules: [
-    'Ton téléphone te donne un personnage secret. L’autre doit le trouver parmi les 24 suspects, et toi le sien.',
+    `Ton téléphone te donne un personnage secret. L’autre doit le trouver parmi les ${BOARD_SIZE} suspects, et toi le sien. Les suspects changent à chaque partie !`,
     'Chacun son tour, pose une question à voix haute (« Il a des lunettes ? »). L’autre répond par oui ou par non.',
     'Touche les suspects pour les écarter, puis passe ton tour. Quand tu es sûr de toi, tente ta chance : si tu te trompes, tu perds !',
   ],

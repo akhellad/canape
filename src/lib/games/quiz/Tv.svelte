@@ -28,6 +28,7 @@
         {#if reveal}
           {#if pick && pick.points > 0}
             <span class="sticker gain" in:slap={{ delay: 300 }}>+{pick.points}</span>
+            {#if pick.first}<span class="sticker first" in:slap={{ delay: 500 }}>Premier !</span>{/if}
           {:else}
             <span class="sticker miss" in:slap={{ delay: 300 }}>{pick ? 'Raté' : 'Trop tard'}</span>
           {/if}
@@ -115,6 +116,12 @@
 
   .miss {
     background: var(--paper-2);
+  }
+
+  .first {
+    background: var(--butter);
+    font-size: 1.1em;
+    transform: rotate(-4deg);
   }
 
   .center {

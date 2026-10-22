@@ -44,6 +44,7 @@ function setup() {
   const clock = new ManualClock();
   let changes = 0;
   const saved = new Map<string, number>();
+  const settings = new Map<string, unknown>();
   const room = new HostRoom({
     timers: clock,
     catalog: CATALOG,
@@ -51,6 +52,7 @@ function setup() {
       changes += 1;
     },
     trophies: { load: (name) => saved.get(name) ?? 0, save: (name, count) => saved.set(name, count) },
+    settings: { load: (game) => settings.get(game), save: (game, value) => settings.set(game, value) },
     seed: () => 1234,
   });
   const connect = (clientId: string) => {
@@ -58,7 +60,7 @@ function setup() {
     room.accept(hostSide);
     return new Phone(phoneSide, clientId);
   };
-  return { clock, room, connect, saved, changes: () => changes };
+  return { clock, room, connect, saved, settings, changes: () => changes };
 }
 
 async function startConnect4(env: ReturnType<typeof setup>) {
@@ -149,6 +151,53 @@ describe('HostRoom', () => {
     await settle();
     expect(view(a.screen)?.moves).toBe(1);
     expect(view(waiting.screen)?.myTurn).toBe(true);
+  });
+
+  it('lets either player change the settings, which resets ready flags and reaches the game', async () => {
+    const env = setup();
+    const a = env.connect('client-aaaa');
+    const b = env.connect('client-bbbb');
+    a.hello('Léa');
+    b.hello('Tom');
+    await settle();
+    a.room({ op: 'pick', game: 'sketch' });
+    await settle();
+    const rules = () => a.screen as Extract<PhoneScreen, { kind: 'rules' }>;
+    expect(rules().settings).toEqual({ rounds: 6, time: 80, hints: 2 });
+    a.room({ op: 'ready' });
+    b.room({ op: 'set', key: 'time', value: 45 });
+    b.room({ op: 'set', key: 'rounds', value: 7 });
+    b.room({ op: 'set', key: 'nope', value: 1 });
+    await settle();
+    expect(rules().settings).toEqual({ rounds: 6, time: 45, hints: 2 });
+    expect(rules().ready).toEqual([false, false]);
+    expect(env.settings.get('sketch')).toEqual({ rounds: 6, time: 45, hints: 2 });
+    a.room({ op: 'ready' });
+    b.room({ op: 'ready' });
+    await settle();
+    env.clock.advance(COUNTDOWN_MS);
+    await settle();
+    const stage = env.room.tv().stage;
+    expect(stage.kind === 'playing' && (stage.view as { total: number }).total).toBe(45);
+  });
+
+  it('remembers the settings from a previous visit to the TV', async () => {
+    const env = setup();
+    env.settings.set('petitbac', { categories: ['Pays', 'Ville', 'Animal'], rounds: 2, time: 60 });
+    const a = env.connect('client-aaaa');
+    const b = env.connect('client-bbbb');
+    a.hello('Léa');
+    b.hello('Tom');
+    await settle();
+    a.room({ op: 'pick', game: 'petitbac' });
+    await settle();
+    const stage = env.room.tv().stage;
+    expect(stage.kind === 'rules' && stage.settings).toEqual({ categories: ['Pays', 'Ville', 'Animal'], rounds: 2, time: 60 });
+    a.room({ op: 'set', key: 'categories', value: ['Pays'] });
+    a.room({ op: 'set', key: 'categories', value: ['Pays', ' pays ', 'Ville', 'Fromage', ''] });
+    await settle();
+    const after = env.room.tv().stage;
+    expect(after.kind === 'rules' && after.settings.categories).toEqual(['Pays', 'Ville', 'Fromage']);
   });
 
   it('alternates the starting player between games', async () => {

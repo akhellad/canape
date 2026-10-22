@@ -1,4 +1,5 @@
 import type { Rng } from '../random';
+import type { SettingDef, Settings } from './settings';
 
 export type Slot = 0 | 1;
 export const SLOTS: readonly Slot[] = [0, 1];
@@ -8,15 +9,17 @@ export type GameId =
   | 'sketch'
   | 'quiz'
   | 'couple'
-  | 'taboo'
   | 'petitbac'
   | 'guesswho'
-  | 'mastermind'
   | 'connect4'
-  | 'reversi'
   | 'battleship'
-  | 'yams'
-  | 'memory';
+  | 'telephone'
+  | 'crossword'
+  | 'bluff'
+  | 'heart'
+  | 'memories'
+  | 'sweet'
+  | 'wavelength';
 
 export type FxKind =
   | 'join'
@@ -60,6 +63,8 @@ export interface TimerHandle {
 export interface GameContext {
   readonly starter: Slot;
   readonly rng: Rng;
+  /** What the players chose on the rules screen; games resolve it against their own definitions. */
+  readonly settings: Settings;
   name(slot: Slot): string;
   now(): number;
   after(ms: number, callback: () => void): TimerHandle;
@@ -84,6 +89,7 @@ export interface GameDefinition {
   accent: string;
   coop: boolean;
   rules: string[];
+  settings?: readonly SettingDef[];
   create(ctx: GameContext): GameInstance;
 }
 

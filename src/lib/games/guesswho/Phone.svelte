@@ -8,7 +8,8 @@
 
   let { view, seats, act }: { view: GuessWhoPhone; seats: Seats; me: Slot; act: (action: unknown) => void } = $props();
   const partner = $derived(seats[other(view.me)]?.name ?? 'l’autre');
-  const me = $derived(PEOPLE[view.secret]);
+  const people = $derived(view.board.map((index) => PEOPLE[index]));
+  const me = $derived(people[view.secret]);
 
   let accusing = $state(false);
   let suspect = $state<number | null>(null);
@@ -46,7 +47,7 @@
   {#if view.phase === 'over'}
     <div class="end" in:slap>
       <h2>{view.winner === view.me ? 'Gagné !' : 'Perdu…'}</h2>
-      {#if view.theirs !== null}<p>{partner} était <b>{PEOPLE[view.theirs].name}</b>.</p>{/if}
+      {#if view.theirs !== null}<p>{partner} était <b>{people[view.theirs].name}</b>.</p>{/if}
     </div>
   {:else if view.myTurn}
     {#if accusing}
@@ -59,7 +60,7 @@
   {/if}
 
   <div class="grid" class:accusing>
-    {#each PEOPLE as person, index (person.name)}
+    {#each people as person, index (person.name)}
       <button
         class="card"
         class:down={view.down[index]}
@@ -78,7 +79,7 @@
     <div class="actions">
       {#if accusing}
         <button class="btn danger" disabled={suspect === null} onclick={() => suspect !== null && act({ type: 'guess', person: suspect })}>
-          {suspect === null ? 'Accuser…' : `Accuser ${PEOPLE[suspect].name}`}
+          {suspect === null ? 'Accuser…' : `Accuser ${people[suspect].name}`}
         </button>
         <button class="btn" onclick={() => ((accusing = false), (suspect = null))}>Annuler</button>
       {:else}

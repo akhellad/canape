@@ -28,6 +28,7 @@
     <div class="verdict" class:right in:slap>
       <Blob slot={view.me} size="3.4rem" mood={right ? 'happy' : 'sad'} bounce={right} />
       <h2>{right ? `Bien vu ! +${view.points}` : view.mine === null ? 'Trop tard…' : 'Raté !'}</h2>
+      {#if view.first}<span class="sticker first">Le plus rapide !</span>{/if}
     </div>
   {/if}
 
@@ -104,6 +105,7 @@
 
   .verdict {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.7rem;
     padding: 0.5rem 0.9rem;

@@ -3,28 +3,32 @@ import type { Seats } from '../room/protocol';
 import type { GameId, Slot } from './types';
 import BattleshipPhone from './battleship/Phone.svelte';
 import BattleshipTv from './battleship/Tv.svelte';
+import BluffPhone from './bluff/Phone.svelte';
+import BluffTv from './bluff/Tv.svelte';
 import Connect4Phone from './connect4/Phone.svelte';
 import Connect4Tv from './connect4/Tv.svelte';
 import CouplePhone from './couple/Phone.svelte';
 import CoupleTv from './couple/Tv.svelte';
+import CrosswordPhone from './crossword/Phone.svelte';
+import CrosswordTv from './crossword/Tv.svelte';
 import GuessWhoPhone from './guesswho/Phone.svelte';
 import GuessWhoTv from './guesswho/Tv.svelte';
-import MastermindPhone from './mastermind/Phone.svelte';
-import MastermindTv from './mastermind/Tv.svelte';
-import MemoryPhone from './memory/Phone.svelte';
-import MemoryTv from './memory/Tv.svelte';
+import HeartPhone from './heart/Phone.svelte';
+import HeartTv from './heart/Tv.svelte';
+import MemoriesPhone from './memories/Phone.svelte';
+import MemoriesTv from './memories/Tv.svelte';
 import PetitBacPhone from './petitbac/Phone.svelte';
 import PetitBacTv from './petitbac/Tv.svelte';
 import QuizPhone from './quiz/Phone.svelte';
 import QuizTv from './quiz/Tv.svelte';
-import ReversiPhone from './reversi/Phone.svelte';
-import ReversiTv from './reversi/Tv.svelte';
 import SketchPhone from './sketch/Phone.svelte';
 import SketchTv from './sketch/Tv.svelte';
-import TabooPhone from './taboo/Phone.svelte';
-import TabooTv from './taboo/Tv.svelte';
-import YamsPhone from './yams/Phone.svelte';
-import YamsTv from './yams/Tv.svelte';
+import SweetPhone from './sweet/Phone.svelte';
+import SweetTv from './sweet/Tv.svelte';
+import TelephonePhone from './telephone/Phone.svelte';
+import TelephoneTv from './telephone/Tv.svelte';
+import WavelengthPhone from './wavelength/Phone.svelte';
+import WavelengthTv from './wavelength/Tv.svelte';
 
 export interface TvViewProps {
   view: any;
@@ -40,15 +44,17 @@ export interface PhoneViewProps {
 
 export const VIEWS: Record<GameId, { Tv: Component<TvViewProps>; Phone: Component<PhoneViewProps> }> = {
   sketch: { Tv: SketchTv, Phone: SketchPhone },
+  telephone: { Tv: TelephoneTv, Phone: TelephonePhone },
+  crossword: { Tv: CrosswordTv, Phone: CrosswordPhone },
+  bluff: { Tv: BluffTv, Phone: BluffPhone },
+  heart: { Tv: HeartTv, Phone: HeartPhone },
+  memories: { Tv: MemoriesTv, Phone: MemoriesPhone },
+  sweet: { Tv: SweetTv, Phone: SweetPhone },
+  wavelength: { Tv: WavelengthTv, Phone: WavelengthPhone },
   quiz: { Tv: QuizTv, Phone: QuizPhone },
   couple: { Tv: CoupleTv, Phone: CouplePhone },
-  taboo: { Tv: TabooTv, Phone: TabooPhone },
   connect4: { Tv: Connect4Tv, Phone: Connect4Phone },
-  reversi: { Tv: ReversiTv, Phone: ReversiPhone },
   battleship: { Tv: BattleshipTv, Phone: BattleshipPhone },
   petitbac: { Tv: PetitBacTv, Phone: PetitBacPhone },
   guesswho: { Tv: GuessWhoTv, Phone: GuessWhoPhone },
-  mastermind: { Tv: MastermindTv, Phone: MastermindPhone },
-  yams: { Tv: YamsTv, Phone: YamsPhone },
-  memory: { Tv: MemoryTv, Phone: MemoryPhone },
 };

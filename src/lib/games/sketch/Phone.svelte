@@ -1,37 +1,18 @@
 <script lang="ts">
-  import Trash2 from '@lucide/svelte/icons/trash-2';
-  import Undo2 from '@lucide/svelte/icons/undo-2';
   import { fly } from 'svelte/transition';
+  import DrawPad from '../../draw/DrawPad.svelte';
   import type { Seats } from '../../room/protocol';
   import Blob from '../../ui/Blob.svelte';
   import { other, type Slot } from '../types';
-  import { BRUSHES, CANVAS, PALETTE, type SketchPhone } from './logic';
+  import type { SketchPhone } from './logic';
   import Pattern from './Pattern.svelte';
-  import { drawStroke, prepare, redraw, type Surface } from './render';
-
-  interface LocalStroke {
-    id: number;
-    color: string;
-    size: number;
-    points: number[];
-    pending: number[];
-    started: boolean;
-  }
 
   let { view, seats, act }: { view: SketchPhone; seats: Seats; me: Slot; act: (action: unknown) => void } = $props();
 
   const LEVELS = ['', 'Facile', 'Moyen', 'Difficile'];
   const partner = $derived(seats[other(view.me)]?.name ?? 'l’autre');
 
-  let color = $state<string>(PALETTE[0]);
-  let brush = $state<number>(BRUSHES[1]);
-  let canvas = $state<HTMLCanvasElement | null>(null);
   let guess = $state('');
-
-  let strokes: LocalStroke[] = [];
-  let current: LocalStroke | null = null;
-  let nextId = 1;
-  let flushTimer: ReturnType<typeof setTimeout> | null = null;
   let round = -1;
 
   const canDraw = $derived(view.role === 'drawer' && view.canDraw);
@@ -39,102 +20,9 @@
   $effect.pre(() => {
     if (view.round !== round) {
       round = view.round;
-      strokes = [];
-      current = null;
-      nextId = 1;
       guess = '';
     }
   });
-
-  $effect(() => {
-    if (canvas) repaint();
-  });
-
-  function surface(): Surface | null {
-    return canvas ? prepare(canvas) : null;
-  }
-
-  function repaint() {
-    const target = surface();
-    if (!target) return;
-    redraw(target, strokes);
-  }
-
-  function paintCurrent() {
-    if (!current) return;
-    const target = surface();
-    if (target) drawStroke(target, current, Math.max(0, current.points.length / 2 - 1));
-  }
-
-  function toCanvas(event: PointerEvent): [number, number] {
-    const rect = (canvas as HTMLCanvasElement).getBoundingClientRect();
-    const clamp = (value: number) => Math.min(CANVAS, Math.max(0, Math.round(value)));
-    const x = clamp(((event.clientX - rect.left) / rect.width) * CANVAS);
-    const y = clamp(((event.clientY - rect.top) / rect.height) * CANVAS);
-    return [x, y];
-  }
-
-  function down(event: PointerEvent) {
-    if (!canDraw || !canvas || current) return;
-    event.preventDefault();
-    canvas.setPointerCapture(event.pointerId);
-    const [x, y] = toCanvas(event);
-    current = { id: nextId++, color, size: brush, points: [x, y], pending: [x, y], started: false };
-    strokes.push(current);
-    paintCurrent();
-    schedule();
-  }
-
-  function move(event: PointerEvent) {
-    if (!current) return;
-    event.preventDefault();
-    const [x, y] = toCanvas(event);
-    const n = current.points.length;
-    const dx = x - current.points[n - 2];
-    const dy = y - current.points[n - 1];
-    if (dx * dx + dy * dy < 25) return;
-    current.points.push(x, y);
-    current.pending.push(x, y);
-    paintCurrent();
-    schedule();
-  }
-
-  function up() {
-    if (!current) return;
-    flush(true);
-    current = null;
-  }
-
-  function schedule() {
-    if (!flushTimer) flushTimer = setTimeout(() => flush(false), 50);
-  }
-
-  function flush(end: boolean) {
-    if (flushTimer) clearTimeout(flushTimer);
-    flushTimer = null;
-    if (!current || (!current.pending.length && !end)) return;
-    const message: Record<string, unknown> = { type: 'stroke', id: current.id, points: current.pending, end };
-    if (!current.started) {
-      message.color = current.color;
-      message.size = current.size;
-      current.started = true;
-    }
-    current.pending = [];
-    act(message);
-  }
-
-  function undo() {
-    if (!strokes.length) return;
-    strokes.pop();
-    act({ type: 'undo' });
-    repaint();
-  }
-
-  function wipe() {
-    strokes = [];
-    act({ type: 'clear' });
-    repaint();
-  }
 
   function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -157,6 +45,10 @@
       <Blob slot={view.me} size="4rem" mood={view.success ? 'happy' : 'sad'} bounce={view.success === true} />
       <h2>{view.success ? `Trouvé ! +${view.points}` : 'Raté…'}</h2>
       {#if view.word}<p>C’était : <b>{view.word}</b></p>{/if}
+      <p class="calm">Admirez le dessin sur la télé, prenez votre temps.</p>
+      <button class="btn primary block next" onclick={() => act({ type: 'next' })}>
+        {view.last ? 'Voir le score final' : 'Dessin suivant'}
+      </button>
     </div>
   {:else if view.role === 'drawer'}
     {#if view.phase === 'choose'}
@@ -175,39 +67,11 @@
       </div>
     {:else}
       <p class="lead">Dessine : <b class="target">{view.word}</b></p>
-      <div class="canvas-wrap paper" class:locked={!canDraw}>
-        <canvas
-          bind:this={canvas}
-          onpointerdown={down}
-          onpointermove={move}
-          onpointerup={up}
-          onpointercancel={up}
-          aria-label="Zone de dessin"
-        ></canvas>
-      </div>
-      <div class="tools">
-        <div class="colors">
-          {#each PALETTE as swatch (swatch)}
-            <button
-              class="swatch"
-              class:active={color === swatch}
-              style:background={swatch}
-              aria-label="Couleur"
-              onclick={() => (color = swatch)}
-            ></button>
-          {/each}
-        </div>
-        <div class="row">
-          {#each BRUSHES as size (size)}
-            <button class="brush" class:active={brush === size} aria-label="Épaisseur" onclick={() => (brush = size)}>
-              <span style:width={`${size / 2.4}px`} style:height={`${size / 2.4}px`} style:background={color}></span>
-            </button>
-          {/each}
-          <button class="tool" aria-label="Annuler le dernier trait" onclick={undo}><Undo2 size={22} /></button>
-          <button class="tool" aria-label="Tout effacer" onclick={wipe}><Trash2 size={22} /></button>
+      <DrawPad {act} enabled={canDraw} resetKey={view.round}>
+        {#snippet actions()}
           <button class="skip" onclick={() => act({ type: 'skip' })}>Passer</button>
-        </div>
-      </div>
+        {/snippet}
+      </DrawPad>
       {#if view.guesses.length}
         <p class="last">Dernière idée de {partner} : <b>{view.guesses[view.guesses.length - 1].text}</b></p>
       {/if}
@@ -352,87 +216,6 @@
     font-size: 1.6rem;
   }
 
-  .canvas-wrap {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1;
-    background: #fffdf7;
-    overflow: hidden;
-  }
-
-  canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    touch-action: none;
-  }
-
-  .canvas-wrap.locked canvas {
-    pointer-events: none;
-  }
-
-  .tools {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-  }
-
-  .colors {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 0.4rem;
-  }
-
-  .swatch {
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 2px solid var(--ink);
-    min-height: 2.2rem;
-    transition: transform 0.15s var(--spring);
-  }
-
-  .swatch.active {
-    box-shadow:
-      0 0 0 3px var(--cream),
-      0 0 0 5px var(--ink);
-    transform: scale(1.12);
-  }
-
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .brush,
-  .tool {
-    width: 2.75rem;
-    height: 2.75rem;
-    display: grid;
-    place-items: center;
-    border-radius: 0.7rem;
-    background: var(--cream);
-    color: var(--ink);
-    border: 2px solid var(--ink);
-    box-shadow: 2px 3px 0 var(--ink);
-  }
-
-  .brush:active,
-  .tool:active {
-    transform: translate(2px, 3px);
-    box-shadow: none;
-  }
-
-  .brush.active {
-    background: var(--butter);
-  }
-
-  .brush span {
-    display: block;
-    border-radius: 50%;
-    border: 1px solid var(--ink);
-  }
-
   .skip {
     margin-left: auto;
     padding: 0.5rem 0.9rem;
@@ -444,6 +227,15 @@
 
   .last {
     font-weight: 600;
+  }
+
+  .calm {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  .next {
+    margin-top: 0.6rem;
   }
 
   .wait,

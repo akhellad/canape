@@ -1,11 +1,13 @@
 <script lang="ts">
   import Icon from '../../ui/Icon.svelte';
   import { replay } from '../../ui/replay';
-  import { SIZE, type ShipView, type Shot } from './logic';
+  import { SIZE, type Scan, type ShipView, type Shot } from './logic';
 
   let {
     shots,
     ships,
+    scans = [],
+    zone = [],
     aim = null,
     firing = null,
     impact = null,
@@ -17,9 +19,11 @@
   }: {
     shots: Shot[];
     ships: ShipView[];
+    scans?: Scan[];
+    zone?: number[];
     aim?: number | null;
     firing?: number | null;
-    impact?: { seq: number; cell: number; result: 'miss' | 'hit' | 'sunk' } | null;
+    impact?: { seq: number; cell: number; cells: number[]; result: 'miss' | 'hit' | 'sunk' | 'scan' } | null;
     mode?: 'view' | 'target' | 'place';
     selected?: number | null;
     shake?: number;
@@ -30,9 +34,26 @@
   const step = 100 / SIZE;
   const cells = Array.from({ length: SIZE * SIZE }, (_, index) => index);
   const pos = (cell: number) => ({ left: (cell % SIZE) * step, top: Math.floor(cell / SIZE) * step });
+
+  /** The 3×3 square a sonar listened to, cut at the edges. */
+  function square(cell: number) {
+    const row = Math.floor(cell / SIZE);
+    const col = cell % SIZE;
+    const top = Math.max(0, row - 1);
+    const left = Math.max(0, col - 1);
+    return {
+      top: top * step,
+      left: left * step,
+      height: (Math.min(SIZE - 1, row + 1) - top + 1) * step,
+      width: (Math.min(SIZE - 1, col + 1) - left + 1) * step,
+    };
+  }
 </script>
 
-<div class="sea" use:replay={{ key: `${shake}-${impact && impact.result !== 'miss' ? impact.seq : 0}`, className: 'shake' }}>
+<div
+  class="sea"
+  use:replay={{ key: `${shake}-${impact && (impact.result === 'hit' || impact.result === 'sunk') ? impact.seq : 0}`, className: 'shake' }}
+>
   <div class="water" aria-hidden="true"></div>
 
   {#each ships as ship (ship.id)}
@@ -64,18 +85,40 @@
     {/if}
   {/each}
 
+  {#each scans as scan (scan.cell)}
+    {@const area = square(scan.cell)}
+    <div
+      class="scan"
+      class:empty={scan.count === 0}
+      style:left={`${area.left}%`}
+      style:top={`${area.top}%`}
+      style:width={`${area.width}%`}
+      style:height={`${area.height}%`}
+    >
+      <span class="count">{scan.count}</span>
+    </div>
+  {/each}
+
   {#if impact}
     {#key impact.seq}
-      <div
-        class="impact"
-        class:strong={impact.result !== 'miss'}
-        style:left={`${pos(impact.cell).left}%`}
-        style:top={`${pos(impact.cell).top}%`}
-      >
-        <span class="ring"></span>
-        <span class="ring late"></span>
-      </div>
+      {#each impact.cells.length ? impact.cells : [impact.cell] as struck (struck)}
+        <div
+          class="impact"
+          class:strong={impact.result === 'hit' || impact.result === 'sunk'}
+          style:left={`${pos(struck).left}%`}
+          style:top={`${pos(struck).top}%`}
+        >
+          <span class="ring"></span>
+          <span class="ring late"></span>
+        </div>
+      {/each}
     {/key}
+  {/if}
+
+  {#if firing === null}
+    {#each zone as cell (cell)}
+      {#if cell !== aim}<div class="zone" style:left={`${pos(cell).left}%`} style:top={`${pos(cell).top}%`}></div>{/if}
+    {/each}
   {/if}
 
   {#if aim !== null && firing === null}
@@ -184,6 +227,48 @@
     background: linear-gradient(180deg, #ffe58a, #ffd23d);
     box-shadow: 0 0 0 0.18em var(--cream);
     animation: bob 0.9s ease-in-out infinite;
+  }
+
+  .zone {
+    position: absolute;
+    width: 12.5%;
+    height: 12.5%;
+    background: rgba(255, 210, 61, 0.38);
+    border: 0.1em dashed var(--butter);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .scan {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    border: 0.16em dashed #9ff5dc;
+    border-radius: 0.4em;
+    background: rgba(47, 209, 165, 0.18);
+    pointer-events: none;
+  }
+
+  .scan.empty {
+    border-color: rgba(232, 243, 255, 0.6);
+    background: rgba(232, 243, 255, 0.08);
+  }
+
+  .count {
+    min-width: 1.6em;
+    padding: 0 0.3em;
+    border-radius: 999px;
+    border: 0.12em solid var(--ink);
+    background: var(--mint);
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 1.2em;
+    text-align: center;
+    animation: pop-in 0.35s ease-out;
+  }
+
+  .scan.empty .count {
+    background: var(--cream);
   }
 
   .mark,

@@ -61,7 +61,17 @@
     {#if view.phase === 'write'}<span class="time" class:urgent={view.remaining <= 10}>{view.remaining} s</span>{/if}
   </div>
 
-  {#if view.phase === 'review' && view.grid}
+  {#if view.phase === 'recap' && view.roundPoints}
+    <div class="recap">
+      <h2 class="pop">Fin de la manche {view.round + 1}</h2>
+      <p>Cette manche : toi <b>+{view.roundPoints[view.me]}</b> · {partner} <b>+{view.roundPoints[other(view.me)]}</b></p>
+      <p class="totals">Total : toi <b>{view.scores[view.me]}</b> · {partner} <b>{view.scores[other(view.me)]}</b></p>
+      <p class="calm">Les réponses restent affichées sur la télé : discutez-en tranquillement.</p>
+      <button class="btn primary block" onclick={() => act({ type: 'next' })}>
+        {view.last ? 'Voir le résultat final' : 'Manche suivante'}
+      </button>
+    </div>
+  {:else if view.phase === 'review' && view.grid}
     {@const mine = view.grid[view.me]}
     {@const theirs = view.grid[other(view.me)]}
     <p class="status">Vérifie les réponses de {partner} : touche celles que tu refuses.</p>
@@ -262,6 +272,32 @@
 
   .their.invalid em {
     background: var(--paper-2);
+  }
+
+  .recap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.8rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .recap h2 {
+    font-size: 2rem;
+  }
+
+  .recap b {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.3em;
+  }
+
+  .calm {
+    color: var(--ink-2);
+    font-size: 0.95rem;
   }
 
   .own {

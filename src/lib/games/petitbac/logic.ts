@@ -1,4 +1,5 @@
 import { normalize } from '../../text';
+import { choiceOf, listOf, resolveSettings, type SettingDef } from '../settings';
 import {
   isInt,
   isRecord,
@@ -18,7 +19,26 @@ export const WRITE_SECONDS = 90;
 const STOP_MS = 2600;
 const MAX_LENGTH = 40;
 
-export type Phase = 'write' | 'stop' | 'review';
+export const PETITBAC_SETTINGS: readonly SettingDef[] = [
+  { id: 'categories', label: 'Catégories', kind: 'list', pool: CATEGORIES, min: 3, max: 10, size: CATEGORY_COUNT, maxLength: 32 },
+  {
+    id: 'rounds',
+    label: 'Manches',
+    kind: 'choice',
+    options: [2, 3, 4, 5, 6].map((value) => ({ value, label: `${value}` })),
+    default: ROUNDS,
+  },
+  {
+    id: 'time',
+    label: 'Temps par manche',
+    kind: 'choice',
+    options: [60, 90, 120, 180, 240].map((value) => ({ value, label: value < 120 ? `${value} s` : `${value / 60} min` })),
+    default: WRITE_SECONDS,
+  },
+];
+
+/** `recap` is the pause between rounds: scores are shown until someone asks for the next letter. */
+export type Phase = 'write' | 'stop' | 'review' | 'recap';
 
 export interface Cell {
   text: string;
@@ -41,6 +61,7 @@ export interface PetitBacTv {
   done: [boolean, boolean];
   scores: [number, number];
   roundPoints: [number, number] | null;
+  last: boolean;
 }
 
 export interface PetitBacPhone {
@@ -55,6 +76,8 @@ export interface PetitBacPhone {
   grid: [Cell[], Cell[]] | null;
   done: boolean;
   scores: [number, number];
+  roundPoints: [number, number] | null;
+  last: boolean;
   guard: string;
 }
 
@@ -76,24 +99,31 @@ class PetitBac implements GameInstance {
   private deadline = 0;
   private timer: TimerHandle | null = null;
   private tick: TimerHandle | null = null;
+  private lastPoints: [number, number] | null = null;
+  private readonly rounds: number;
+  private readonly seconds: number;
 
   constructor(private readonly ctx: GameContext) {
+    const settings = resolveSettings(PETITBAC_SETTINGS, ctx.settings, ctx.rng);
+    // The same categories all game long, like on paper: only the letter changes.
+    this.categories = listOf(settings, 'categories');
+    this.rounds = choiceOf(settings, 'rounds');
+    this.seconds = choiceOf(settings, 'time');
     this.start();
   }
 
   private start(): void {
+    const count = this.categories.length;
     this.letter = this.ctx.draw('petitbac-letter', LETTERS, (letter) => letter);
-    const picked = new Set<string>();
-    while (picked.size < CATEGORY_COUNT) picked.add(this.ctx.draw('petitbac', CATEGORIES, (category) => category));
-    this.categories = [...picked];
-    this.answers = [Array(CATEGORY_COUNT).fill(''), Array(CATEGORY_COUNT).fill('')];
-    this.vetoes = [Array(CATEGORY_COUNT).fill(false), Array(CATEGORY_COUNT).fill(false)];
+    this.answers = [Array(count).fill(''), Array(count).fill('')];
+    this.vetoes = [Array(count).fill(false), Array(count).fill(false)];
     this.done = [false, false];
     this.stopper = null;
+    this.lastPoints = null;
     this.phase = 'write';
-    this.deadline = this.ctx.now() + WRITE_SECONDS * 1000;
+    this.deadline = this.ctx.now() + this.seconds * 1000;
     this.ctx.cancel(this.timer);
-    this.timer = this.ctx.after(WRITE_SECONDS * 1000, () => this.stop(null));
+    this.timer = this.ctx.after(this.seconds * 1000, () => this.stop(null));
     this.scheduleTick();
     this.ctx.fx('reveal', 'all');
     this.ctx.update();
@@ -113,7 +143,7 @@ class PetitBac implements GameInstance {
     if (!isRecord(action) || typeof action.type !== 'string') return;
     if (action.type === 'answers' && (this.phase === 'write' || this.phase === 'stop')) {
       const list = action.list;
-      if (!Array.isArray(list) || list.length !== CATEGORY_COUNT || !list.every((item) => typeof item === 'string')) return;
+      if (!Array.isArray(list) || list.length !== this.categories.length || !list.every((item) => typeof item === 'string')) return;
       this.answers[slot] = list.map((item: string) => item.trim().slice(0, MAX_LENGTH));
       if (this.phase === 'write') this.ctx.update();
       return;
@@ -123,8 +153,12 @@ class PetitBac implements GameInstance {
       if (complete) this.stop(slot);
       return;
     }
+    if (action.type === 'next' && this.phase === 'recap') {
+      this.next();
+      return;
+    }
     if (this.phase !== 'review') return;
-    if (action.type === 'veto' && isInt(action.index, 0, CATEGORY_COUNT - 1) && !this.done[slot]) {
+    if (action.type === 'veto' && isInt(action.index, 0, this.categories.length - 1) && !this.done[slot]) {
       const target = other(slot);
       this.vetoes[target][action.index] = !this.vetoes[target][action.index];
       this.ctx.fx('error', 'all');
@@ -132,7 +166,7 @@ class PetitBac implements GameInstance {
     } else if (action.type === 'done') {
       this.done[slot] = true;
       this.ctx.fx('lock', [slot]);
-      if (this.done[0] && this.done[1]) this.next();
+      if (this.done[0] && this.done[1]) this.recap();
       this.ctx.update();
     }
   }
@@ -171,12 +205,18 @@ class PetitBac implements GameInstance {
     return [grid[0].reduce((sum, cell) => sum + cell.points, 0), grid[1].reduce((sum, cell) => sum + cell.points, 0)];
   }
 
-  private next(): void {
+  private recap(): void {
     const points = this.roundPoints(this.grid());
     this.scores[0] += points[0];
     this.scores[1] += points[1];
+    this.lastPoints = points;
+    this.phase = 'recap';
+    this.ctx.fx('reveal', 'all');
+  }
+
+  private next(): void {
     this.round += 1;
-    if (this.round < ROUNDS) {
+    if (this.round < this.rounds) {
       this.start();
       return;
     }
@@ -194,22 +234,28 @@ class PetitBac implements GameInstance {
     return Math.max(0, Math.ceil((this.deadline - this.ctx.now()) / 1000));
   }
 
+  private shownPoints(grid: [Cell[], Cell[]] | null): [number, number] | null {
+    if (this.phase === 'recap') return this.lastPoints;
+    return grid ? this.roundPoints(grid) : null;
+  }
+
   tv(): PetitBacTv {
-    const grid = this.phase === 'review' ? this.grid() : null;
+    const grid = this.phase === 'review' || this.phase === 'recap' ? this.grid() : null;
     return {
       phase: this.phase,
       round: this.round,
-      rounds: ROUNDS,
+      rounds: this.rounds,
       letter: this.letter,
       categories: this.categories,
       remaining: this.remaining(),
-      total: WRITE_SECONDS,
+      total: this.seconds,
       filled: [this.filled(0), this.filled(1)],
       stopper: this.stopper,
       grid,
       done: [...this.done],
       scores: [...this.scores],
-      roundPoints: grid ? this.roundPoints(grid) : null,
+      roundPoints: this.shownPoints(grid),
+      last: this.round === this.rounds - 1,
     };
   }
 
@@ -218,18 +264,21 @@ class PetitBac implements GameInstance {
   }
 
   phone(slot: Slot): PetitBacPhone {
+    const grid = this.phase === 'review' || this.phase === 'recap' ? this.grid() : null;
     return {
       phase: this.phase,
       me: slot,
       round: this.round,
-      rounds: ROUNDS,
+      rounds: this.rounds,
       letter: this.letter,
       categories: this.categories,
       remaining: this.remaining(),
       stopper: this.stopper,
-      grid: this.phase === 'review' ? this.grid() : null,
+      grid,
       done: this.done[slot],
       scores: [...this.scores],
+      roundPoints: this.shownPoints(grid),
+      last: this.round === this.rounds - 1,
       guard: `${this.round}-${this.phase}`,
     };
   }
@@ -238,14 +287,15 @@ class PetitBac implements GameInstance {
 export const petitbac: GameDefinition = {
   id: 'petitbac',
   title: 'Petit Bac',
-  tagline: 'Une lettre, six catégories, et le premier qui crie stop.',
+  tagline: 'Une lettre, vos catégories, et le premier qui crie stop.',
   accent: '#ffd23d',
   coop: false,
   rules: [
-    `Une lettre et ${CATEGORY_COUNT} catégories s’affichent. Écris sur ton téléphone un mot qui commence par cette lettre pour chaque catégorie.`,
-    `Tu as ${WRITE_SECONDS} secondes. Si tu as tout rempli avant, appuie sur « Stop ! » : la manche s’arrête aussi pour l’autre.`,
+    'Choisissez vos catégories : elles restent les mêmes toute la partie, seule la lettre change.',
+    'Pour chaque catégorie, écris un mot qui commence par la lettre. Tout rempli ? Appuie sur « Stop ! » : la manche s’arrête aussi pour l’autre.',
     'Les réponses s’affichent sur la télé. Tu peux refuser une réponse de l’autre si elle ne tient pas la route.',
-    `Réponse valable : 10 points, 5 si vous avez écrit la même. ${ROUNDS} manches, le plus gros total gagne !`,
+    'Réponse valable : 10 points, 5 si vous avez écrit la même. Le plus gros total gagne !',
   ],
+  settings: PETITBAC_SETTINGS,
   create: (ctx) => new PetitBac(ctx),
 };

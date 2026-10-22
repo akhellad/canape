@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { fly, scale } from 'svelte/transition';
   import { backOut } from 'svelte/easing';
   import type { Seats } from '../../room/protocol';
@@ -7,44 +6,12 @@
   import { other, type Slot } from '../types';
   import type { SketchTv } from './logic';
   import Pattern from './Pattern.svelte';
-  import { drawStroke, prepare, redraw } from './render';
+  import DrawingView from '../../draw/DrawingView.svelte';
   import Timer from '../../ui/Timer.svelte';
 
   let { view, seats }: { view: SketchTv; seats: Seats } = $props();
   const name = (slot: Slot) => seats[slot]?.name ?? `Joueur ${slot + 1}`;
   const levels = ['', 'Facile', 'Moyen', 'Difficile'];
-
-  let canvas: HTMLCanvasElement;
-  let drawn = new Map<number, number>();
-  let resized = $state(0);
-  let lastResize = -1;
-
-  onMount(() => {
-    const observer = new ResizeObserver(() => resized++);
-    observer.observe(canvas);
-    return () => observer.disconnect();
-  });
-
-  $effect(() => {
-    void view.strokeRev;
-    void resized;
-    const strokes = view.strokes;
-    const surface = prepare(canvas);
-    if (!surface) return;
-    const known = new Set(strokes.map((stroke) => stroke.id));
-    const stale = [...drawn.keys()].some((id) => !known.has(id));
-    const shrunk = strokes.some((stroke) => (drawn.get(stroke.id) ?? 0) > stroke.points.length / 2);
-    if (stale || shrunk || resized !== lastResize) {
-      lastResize = resized;
-      redraw(surface, strokes);
-    } else {
-      for (const stroke of strokes) {
-        const already = drawn.get(stroke.id) ?? 0;
-        if (already < stroke.points.length / 2) drawStroke(surface, stroke, already);
-      }
-    }
-    drawn = new Map(strokes.map((stroke) => [stroke.id, stroke.points.length / 2]));
-  });
 </script>
 
 <section class="sketch">
@@ -64,7 +31,7 @@
 
   <div class="board">
     <div class="paper canvas-wrap">
-      <canvas bind:this={canvas} aria-label="Dessin en cours"></canvas>
+      <DrawingView strokes={view.strokes} rev={view.strokeRev} label="Dessin en cours" />
       {#if view.phase === 'choose'}
         <div class="overlay" in:fly={{ y: 20, duration: 300 }}>
           <Blob slot={view.drawer} size="4em" mood="wink" bounce />
@@ -73,7 +40,6 @@
       {:else if view.phase === 'reveal'}
         <div class="overlay result" class:success={view.success} in:scale={{ duration: 450, easing: backOut, start: 0.7 }}>
           <p class="verdict">{view.success ? 'Trouvé !' : 'Raté…'}</p>
-          <p>C’était :</p>
           <div class="answer"><Pattern pattern="" word={view.word} /></div>
           {#if view.success}<p class="points">+{view.points} points</p>{/if}
         </div>
@@ -88,6 +54,9 @@
         <span class="sub">{view.level ? levels[view.level] : ''}</span>
         <Pattern pattern={view.pattern} />
       </div>
+    {/if}
+    {#if view.phase === 'reveal'}
+      <p class="next sticker">{view.last ? 'Appuyez sur « Voir le score final »' : 'Appuyez sur « Dessin suivant »'} quand vous voulez</p>
     {/if}
     <ul class="guesses">
       {#each view.guesses as guess (guess.seq)}
@@ -191,12 +160,6 @@
     transform: rotate(-0.6deg);
   }
 
-  canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
   .overlay {
     position: absolute;
     inset: 0;
@@ -212,17 +175,25 @@
     text-align: center;
   }
 
+  /* A banner along the bottom, so the drawing stays in view while you talk about it. */
   .overlay.result {
-    background: rgba(42, 12, 29, 0.86);
+    inset: auto 0 0 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.2em 0.7em;
+    padding: 0.4em 0.6em 0.5em;
+    font-size: 1.3em;
+    background: var(--ink);
     color: var(--cream);
+    border-top: 0.12em solid var(--ink);
   }
 
   .overlay.result.success {
-    background: rgba(25, 180, 138, 0.92);
+    background: #0f7a5c;
   }
 
   .verdict {
-    font-size: 1.6em;
+    font-size: 1.3em;
     color: var(--cream);
     -webkit-text-stroke: 0.04em var(--ink);
     paint-order: stroke fill;
@@ -232,7 +203,17 @@
   }
 
   .answer {
-    font-size: 1.6em;
+    font-size: 1.2em;
+  }
+
+  .next {
+    max-width: 16em;
+    white-space: normal;
+    text-align: center;
+    text-transform: none;
+    font-size: 1.1em;
+    line-height: 1.3;
+    animation: wiggle 1.6s ease-in-out infinite;
   }
 
   .points {

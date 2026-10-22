@@ -33,7 +33,7 @@
   </aside>
 
   <div class="main">
-    {#if view.phase === 'review' && view.grid}
+    {#if (view.phase === 'review' || view.phase === 'recap') && view.grid}
       <div class="table paper">
         <div class="head">
           <span></span>
@@ -59,7 +59,13 @@
           </div>
         {/if}
       </div>
-      <p class="hint sticker">Refusez les réponses douteuses de l’autre sur vos téléphones, puis validez</p>
+      {#if view.phase === 'recap'}
+        <p class="hint sticker next">
+          {view.last ? 'Appuyez sur « Voir le résultat final »' : 'Appuyez sur « Manche suivante »'} quand vous êtes prêts
+        </p>
+      {:else}
+        <p class="hint sticker">Refusez les réponses douteuses de l’autre sur vos téléphones, puis validez</p>
+      {/if}
     {:else}
       <h2 class="pop">Des mots en <span class="name-tag letter-tag">{view.letter}</span> !</h2>
       <ol class="cats">
@@ -290,6 +296,12 @@
   .hint {
     background: var(--cream);
     font-size: 1em;
+  }
+
+  .hint.next {
+    background: var(--butter);
+    font-size: 1.2em;
+    animation: wiggle 1.6s ease-in-out infinite;
   }
 
   .stop {

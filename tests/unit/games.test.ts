@@ -7,10 +7,12 @@ import {
   randomFleet,
   shipCells,
   SIZE,
+  weaponArea,
   type BattleshipPhone,
   type BattleshipTv,
 } from '../../src/lib/games/battleship/logic';
-import { sketch, ROUNDS, type SketchPhone, type SketchTv } from '../../src/lib/games/sketch/logic';
+import { isAnswer, sketch, ROUNDS, type SketchPhone, type SketchTv } from '../../src/lib/games/sketch/logic';
+import { PALETTE, PAPER } from '../../src/lib/draw/pad';
 import { createRng } from '../../src/lib/random';
 import { createTestContext } from './helpers';
 import type { Slot } from '../../src/lib/games/types';
@@ -143,6 +145,84 @@ describe('Touché-coulé', () => {
     test.clock.advance(4000);
     expect(test.results[0].winner).toBe(winner);
   });
+
+  function battle(settings = {}) {
+    const test = createTestContext({ seed: 5, starter: 0, settings });
+    const game = battleship.create(test.ctx);
+    const tv = () => game.tv() as BattleshipTv;
+    game.act(0, { type: 'ready' });
+    game.act(1, { type: 'ready' });
+    const fleet = (slot: Slot) => {
+      const view = game.phone(slot) as BattleshipPhone;
+      if (view.phase === 'place') throw new Error('unexpected phase');
+      return view.own.ships;
+    };
+    const shipCell = (slot: Slot) => shipCells(fleet(slot)[0])[0];
+    const waterCell = (slot: Slot) => {
+      const taken = new Set(fleet(slot).flatMap(shipCells));
+      return Array.from({ length: SIZE * SIZE }, (_, i) => i).find((i) => !taken.has(i) && tv().boards[slot].shots[i] === null)!;
+    };
+    const shoot = (slot: Slot, cell: number, weapon = 'shot') => {
+      game.act(slot, { type: 'fire', cell, weapon });
+      test.clock.advance(1100 + 1700);
+    };
+    return { test, game, tv, fleet, shipCell, waterCell, shoot };
+  }
+
+  it('lets the shooter play again after a hit, and passes the turn after a miss', () => {
+    const { tv, shipCell, waterCell, shoot } = battle();
+    shoot(0, shipCell(1));
+    expect(tv().last).toMatchObject({ result: 'hit', again: true });
+    expect(tv().turn).toBe(0);
+    shoot(0, waterCell(1));
+    expect(tv().turn).toBe(1);
+  });
+
+  it('passes the turn after a hit when replaying is turned off', () => {
+    const { tv, shipCell, shoot } = battle({ again: 0 });
+    shoot(0, shipCell(1));
+    expect(tv().turn).toBe(1);
+  });
+
+  it('uses each special weapon once: bomb in a cross, torpedo to the first ship, sonar counts', () => {
+    const { tv, fleet, shipCell, waterCell, shoot, game } = battle({ again: 0 });
+    const center = 2 * SIZE + 2;
+    shoot(0, center, 'bomb');
+    expect(tv().last?.cells.sort()).toEqual(weaponArea('bomb', center).sort());
+    expect(tv().arsenal[0]).toEqual(['torpedo', 'sonar']);
+    shoot(1, waterCell(0));
+    game.act(0, { type: 'fire', cell: 40, weapon: 'bomb' });
+    expect(tv().firing).toBeNull();
+
+    const target = shipCell(1);
+    const row = Math.floor(target / SIZE);
+    const firstShip = weaponArea('torpedo', target).find(
+      (cell) => tv().boards[1].shots[cell] === null && fleet(1).some((ship) => shipCells(ship).includes(cell)),
+    )!;
+    const free = weaponArea('torpedo', target).find((cell) => tv().boards[1].shots[cell] === null)!;
+    shoot(0, free, 'torpedo');
+    expect(tv().last?.cells.at(-1)).toBe(firstShip);
+    expect(tv().last?.cells.every((cell) => Math.floor(cell / SIZE) === row)).toBe(true);
+    expect(tv().boards[1].shots[firstShip]).toBe('hit');
+    shoot(1, waterCell(0));
+
+    const taken = new Set(fleet(1).flatMap(shipCells));
+    const scanAt = Array.from({ length: SIZE * SIZE }, (_, i) => i).find((i) => tv().boards[1].shots[i] === null)!;
+    shoot(0, scanAt, 'sonar');
+    const expected = weaponArea('sonar', scanAt).filter((cell) => taken.has(cell)).length;
+    expect(tv().last).toMatchObject({ result: 'scan', count: expected });
+    expect(tv().boards[1].scans).toEqual([{ cell: scanAt, count: expected }]);
+    expect(tv().boards[1].shots[scanAt]).toBeNull();
+    expect(tv().arsenal[0]).toEqual([]);
+    expect(tv().turn).toBe(1);
+  });
+
+  it('can be played without special weapons', () => {
+    const { tv, game } = battle({ specials: 0 });
+    expect(tv().specials).toBe(false);
+    game.act(0, { type: 'fire', cell: 0, weapon: 'bomb' });
+    expect(tv().firing).toBeNull();
+  });
 });
 
 describe('Gribouille', () => {
@@ -210,11 +290,61 @@ describe('Gribouille', () => {
       game.act(current, { type: 'choose', index: 0 });
       game.act(current, { type: 'skip' });
       expect(tv().phase).toBe('reveal');
-      test.clock.advance(5000);
+      test.clock.advance(60_000);
+      expect(tv().phase).toBe('reveal');
+      game.act(round % 2 ? 0 : 1, { type: 'next' });
     }
     expect(drawers).toEqual([0, 1, 0, 1, 0, 1]);
     expect(test.results).toHaveLength(1);
     expect(test.results[0].coop?.won).toBe(false);
     expect(phone(0).phase).toBe('reveal');
+  });
+
+  it('accepts the exact word even when it holds articles, after a close guess', () => {
+    for (const word of ['galette des rois', 'faire la fête', 'poser un lapin', 'feu d’artifice', 'tir à la corde']) {
+      expect(isAnswer(word, word).correct).toBe(true);
+      expect(isAnswer(word.toUpperCase(), word).correct).toBe(true);
+    }
+    expect(isAnswer('faire fete', 'faire la fête').correct).toBe(true);
+    expect(isAnswer('galette', 'galette des rois')).toEqual({ correct: false, near: true });
+    expect(isAnswer('poser lapin', 'poser un lapin').correct).toBe(true);
+    expect(isAnswer('chat', 'chien').correct).toBe(false);
+  });
+
+  it('keeps paint-bucket fills in the drawing, and undo removes them', () => {
+    const { game, tv } = setup();
+    game.act(0, { type: 'choose', index: 0 });
+    game.act(0, { type: 'fill', id: 1, x: 500, y: 500, color: PALETTE[5] });
+    game.act(0, { type: 'fill', id: 2, x: 500, y: 500, color: 'red' });
+    game.act(0, { type: 'stroke', id: 3, color: PAPER, size: 36, points: [10, 10, 20, 20], end: true });
+    expect(tv().strokes.map((stroke) => [stroke.fill ?? false, stroke.color])).toEqual([
+      [true, PALETTE[5]],
+      [false, PAPER],
+    ]);
+    game.act(0, { type: 'undo' });
+    game.act(0, { type: 'undo' });
+    expect(tv().strokes).toHaveLength(0);
+  });
+
+  it('follows the chosen number of rounds, drawing time and hints', () => {
+    const test = createTestContext({ seed: 8, starter: 0, settings: { rounds: 4, time: 45, hints: 0 } });
+    const game = sketch.create(test.ctx);
+    const tv = () => game.tv() as SketchTv;
+    expect(tv().rounds).toBe(4);
+    game.act(0, { type: 'choose', index: 2 });
+    expect(tv().total).toBe(45);
+    const hidden = tv().pattern.replace(/[^_]/g, '').length;
+    test.clock.advance(44_000);
+    expect(tv().pattern.replace(/[^_]/g, '')).toHaveLength(hidden);
+    test.clock.advance(2000);
+    expect(tv().phase).toBe('reveal');
+    for (let round = 1; round < 4; round++) {
+      game.act(0, { type: 'next' });
+      game.act(tv().drawer, { type: 'choose', index: 0 });
+      game.act(tv().drawer, { type: 'skip' });
+    }
+    expect(tv().last).toBe(true);
+    game.act(1, { type: 'next' });
+    expect(test.results).toHaveLength(1);
   });
 });

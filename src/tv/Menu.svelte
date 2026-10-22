@@ -36,7 +36,7 @@
     max-width: 92em;
     display: flex;
     flex-direction: column;
-    gap: 2em;
+    gap: 1.4em;
   }
 
   .title {
@@ -48,7 +48,7 @@
   }
 
   h1 {
-    font-size: 3.6em;
+    font-size: 3.2em;
     transform: rotate(-1.5deg);
   }
 
@@ -58,13 +58,14 @@
     color: var(--muted);
   }
 
+  /* Seven tiles a row keeps every game on one TV screen. */
   .grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(7, 10.9em);
     justify-content: center;
-    gap: 1.6em 1.2em;
-    max-width: 78em;
+    gap: 1.4em 1.1em;
     margin: 0 auto;
+    font-size: 0.86em;
   }
 
   .tile {
@@ -84,7 +85,7 @@
   .art {
     display: grid;
     place-items: center;
-    height: 4.6em;
+    height: 4em;
     background: var(--accent);
     border-bottom: var(--line) solid var(--ink);
     border-radius: calc(var(--radius) - 0.16em) calc(var(--radius) - 0.16em) 0 0;

@@ -2,6 +2,7 @@ import { DeckHistory } from '../../src/lib/games/deck';
 import { Link } from '../../src/lib/net/link';
 import { createRng } from '../../src/lib/random';
 import type { TimerHost } from '../../src/lib/room/scheduler';
+import type { Settings } from '../../src/lib/games/settings';
 import type { FxKind, GameContext, GameResult, Slot } from '../../src/lib/games/types';
 
 interface Pending {
@@ -48,7 +49,7 @@ export interface TestContext {
   updates: () => number;
 }
 
-export function createTestContext(options: { seed?: number; starter?: Slot } = {}): TestContext {
+export function createTestContext(options: { seed?: number; starter?: Slot; settings?: Settings } = {}): TestContext {
   const clock = new ManualClock();
   const fx: TestContext['fx'] = [];
   const results: GameResult[] = [];
@@ -58,6 +59,7 @@ export function createTestContext(options: { seed?: number; starter?: Slot } = {
   const ctx: GameContext = {
     starter: options.starter ?? 0,
     rng,
+    settings: options.settings ?? {},
     name: (slot) => (slot === 0 ? 'Léa' : 'Tom'),
     now: () => clock.now(),
     after: (ms, callback) => ({ id: clock.setTimeout(callback, ms) as number }),

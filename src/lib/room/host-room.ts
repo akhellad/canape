@@ -1,5 +1,6 @@
 import type { Link } from '../net/link';
 import { DeckHistory, type HistoryStore } from '../games/deck';
+import { changeSetting, resolveSettings, type Settings } from '../games/settings';
 import { createRng } from '../random';
 import { sanitizeName } from '../text';
 import {
@@ -62,7 +63,7 @@ class Session {
 type Stage =
   | { kind: 'lobby' }
   | { kind: 'menu' }
-  | { kind: 'rules'; game: GameId; ready: [boolean, boolean] }
+  | { kind: 'rules'; game: GameId; ready: [boolean, boolean]; settings: Settings }
   | { kind: 'countdown'; game: GameId; until: number }
   | { kind: 'playing'; game: GameId; session: Session }
   | { kind: 'result'; game: GameId; session: Session; result: GameResult };
@@ -70,7 +71,7 @@ type Stage =
 export type TvStage =
   | { kind: 'lobby' }
   | { kind: 'menu' }
-  | { kind: 'rules'; game: GameId; ready: [boolean, boolean] }
+  | { kind: 'rules'; game: GameId; ready: [boolean, boolean]; settings: Settings }
   | { kind: 'countdown'; game: GameId; until: number }
   | { kind: 'playing'; game: GameId; view: unknown; waitingFor: string[]; resumeAt: number | null }
   | { kind: 'result'; game: GameId; view: unknown; result: GameResult };
@@ -87,12 +88,18 @@ export interface TrophyStore {
   save(name: string, count: number): void;
 }
 
+export interface SettingsStore {
+  load(game: GameId): unknown;
+  save(game: GameId, settings: Settings): void;
+}
+
 export interface HostRoomOptions {
   timers: TimerHost;
   catalog: Readonly<Record<GameId, GameDefinition>>;
   onChange(): void;
   trophies?: TrophyStore;
   history?: HistoryStore;
+  settings?: SettingsStore;
   seed?: () => number;
 }
 
@@ -110,6 +117,7 @@ export class HostRoom {
   private heartbeatHandle: unknown = null;
   private disposed = false;
   private readonly decks: DeckHistory;
+  private readonly chosen = new Map<GameId, Settings>();
 
   constructor(private readonly options: HostRoomOptions) {
     this.decks = new DeckHistory(options.history);
@@ -235,7 +243,19 @@ export class HostRoom {
     switch (cmd.op) {
       case 'pick':
         if (stage.kind === 'menu' && Object.prototype.hasOwnProperty.call(this.options.catalog, cmd.game)) {
-          this.setStage({ kind: 'rules', game: cmd.game, ready: [false, false] });
+          this.setStage({ kind: 'rules', game: cmd.game, ready: [false, false], settings: this.settingsFor(cmd.game) });
+        }
+        break;
+      case 'set':
+        if (stage.kind === 'rules') {
+          const next = changeSetting(this.options.catalog[stage.game].settings ?? [], stage.settings, cmd.key, cmd.value);
+          if (next && JSON.stringify(next) !== JSON.stringify(stage.settings)) {
+            stage.settings = next;
+            // Nobody should start on settings they did not see.
+            stage.ready = [false, false];
+            this.chosen.set(stage.game, next);
+            this.options.settings?.save(stage.game, next);
+          }
         }
         break;
       case 'ready':
@@ -284,6 +304,14 @@ export class HostRoom {
     }, COUNTDOWN_MS);
   }
 
+  private settingsFor(game: GameId): Settings {
+    const defs = this.options.catalog[game].settings ?? [];
+    const saved = this.chosen.get(game) ?? this.options.settings?.load(game);
+    const settings = resolveSettings(defs, saved, createRng(this.options.seed?.() ?? Math.floor(Math.random() * 4294967296)));
+    this.chosen.set(game, settings);
+    return settings;
+  }
+
   private startGame(game: GameId): void {
     const definition = this.options.catalog[game];
     this.starter = other(this.starter);
@@ -295,6 +323,7 @@ export class HostRoom {
     const ctx: GameContext = {
       starter: this.starter,
       rng,
+      settings: this.chosen.get(game) ?? {},
       name: (slot) => this.name(slot),
       now: () => session.scheduler.now(),
       after: (ms, callback) => ({
@@ -459,7 +488,7 @@ export class HostRoom {
       case 'menu':
         return { kind: stage.kind };
       case 'rules':
-        return { kind: 'rules', game: stage.game, ready: [...stage.ready] as [boolean, boolean] };
+        return { kind: 'rules', game: stage.game, ready: [...stage.ready] as [boolean, boolean], settings: stage.settings };
       case 'countdown':
         return { kind: 'countdown', game: stage.game };
       case 'playing':
@@ -481,7 +510,7 @@ export class HostRoom {
       case 'menu':
         return { kind: stage.kind };
       case 'rules':
-        return { kind: 'rules', game: stage.game, ready: [...stage.ready] as [boolean, boolean] };
+        return { kind: 'rules', game: stage.game, ready: [...stage.ready] as [boolean, boolean], settings: stage.settings };
       case 'countdown':
         return { kind: 'countdown', game: stage.game, until: stage.until };
       case 'playing':
